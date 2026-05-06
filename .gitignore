@@ -1,3 +1,5 @@
 /target
 /.direnv
 /.env
+/.rumdl_cache
+/.DS_Store

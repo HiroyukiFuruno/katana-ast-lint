@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. 0.1.0 or v0.1.0. Defaults to Cargo.toml version."
+        required: false
+        type: string
+      publish_crate:
+        description: "Publish to crates.io after GitHub Release is created"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: Cache Rust build outputs
+        uses: Swatinem/rust-cache@v2.9.1
+        with:
+          shared-key: release-ubuntu-stable
+
+      - name: Install just
+        uses: taiki-e/install-action@v2.77.1
+        with:
+          tool: just
+
+      - name: Resolve version
+        id: version
+        run: scripts/release/verify-version.sh "${{ inputs.version }}"
+
+      - name: Verify release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/release/verify-tag-verified.sh "${{ steps.version.outputs.version }}" "${GITHUB_REPOSITORY}"
+
+      - name: Release check
+        run: just VERSION="${{ steps.version.outputs.version }}" release-check
+
+      - name: Upload package artifact
+        id: package
+        run: scripts/release/package-crate.sh "${{ steps.version.outputs.version_bare }}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.version.outputs.version }}"
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            gh release upload "${tag}" "${{ steps.package.outputs.package_path }}" "${{ steps.package.outputs.checksum_path }}" --clobber
+          else
+            gh release create "${tag}" \
+              "${{ steps.package.outputs.package_path }}" \
+              "${{ steps.package.outputs.checksum_path }}" \
+              --verify-tag \
+              --title "katana-ast-lint ${tag}" \
+              --generate-notes
+          fi
+
+      - name: Publish crate
+        if: inputs.publish_crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --locked
+

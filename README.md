@@ -1,12 +1,33 @@
 # katana-ast-lint
 
-`katana-ast-lint` は、KatanA ecosystem の分離repositoryで共通利用する抽象構文木検査（AST lint）です。
+Reusable AST lint rules for KatanA ecosystem repositories.
 
-P0として先に分離し、`katana-markdown-engine`、`katana-document-preview`、`katana-language-editor`、`katana-canvas-forge`、`katana-ui-widget` が同じ品質ゲートを使える状態にします。
+`katana-ast-lint` is a library-only crate. It does not provide a CLI. Consumer
+repositories call the public Rust API from their own tests or quality gates.
 
-## 初期方針
+## Scope
 
-- 共通rule本体にKatanA固有pathを直書きしません。
-- repository固有のfile探索やfixture指定はadapterで扱います。
-- 違反形式はrule id、重要度、対象file、範囲、message、修正方針を持ちます。
-- lintを通すためだけの除外設定追加は禁止します。
+- Shared Rust AST lint rules migrated from the KatanA workspace
+- Repository adapters for consumer-specific paths and fixtures
+- Structured violations with file, line, column, and message
+- Quality gates for separated repositories such as KME, preview, editor, export, and shared widgets
+
+## Library Usage
+
+```rust
+use katana_ast_lint::rules::LazyCodeOps;
+use katana_ast_lint::utils::LinterParserOps;
+use std::path::Path;
+
+let path = Path::new("src/lib.rs");
+let syntax = LinterParserOps::parse_file(path)?;
+let violations = LazyCodeOps::lint(path, &syntax);
+```
+
+## Local Development
+
+```bash
+just check
+```
+
+`just check` runs formatting, Clippy, repository AST lint tests, and unit tests.

@@ -1,0 +1,17 @@
+no_tty: true
+output:
+  - failure
+
+pre-commit:
+  parallel: false
+  commands:
+    formatting:
+      glob: "*.rs"
+      run: just fmt
+
+pre-push:
+  commands:
+    check-strict:
+      run: just JOBS=2 check
+      glob: "*.{rs,toml,lock}"
+

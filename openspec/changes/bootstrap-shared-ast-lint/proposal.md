@@ -7,9 +7,12 @@ KatanA ecosystemでは、KME、preview、editor、export、widgetが別repositor
 ## What Changes
 
 - 共通AST lintのrepository baselineを作る
-- 共通rule、repository adapter、違反形式、実行入口を分ける
+- 共通rule、repository adapter、reporter、test/CI実行入口を分ける
 - KME以降のrepositoryが参照できる契約を定義する
 - lint除外で失敗を隠さない運用を明文化する
+- CLIは提供しないlibrary-only crateとして移植する
+- kml相当の品質ゲート、lefthook、CI/CD、release骨格を用意する
+- crates.io token登録はユーザー作業として後続扱いにする
 
 ## Capabilities
 
@@ -20,6 +23,7 @@ KatanA ecosystemでは、KME、preview、editor、export、widgetが別repositor
 ## Impact
 
 - 新規crate構成
-- 共通違反DTO
+- v0違反形式
 - repository adapter interface
 - CI / 手元実行入口
+- release workflow

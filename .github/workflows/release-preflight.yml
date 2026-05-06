@@ -1,0 +1,53 @@
+name: release-preflight
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "**.rs"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "Justfile"
+      - "just/**"
+      - ".github/workflows/**"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "docs/**"
+      - "openspec/**"
+      - "scripts/**"
+      - "tests/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: Cache Rust build outputs
+        uses: Swatinem/rust-cache@v2.9.1
+        with:
+          shared-key: release-preflight-ubuntu-stable
+
+      - name: Install just
+        uses: taiki-e/install-action@v2.77.1
+        with:
+          tool: just
+
+      - name: Release check
+        run: just release-check
+

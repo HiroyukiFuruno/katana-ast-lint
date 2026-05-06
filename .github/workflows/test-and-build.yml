@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "**.rs"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "Justfile"
+      - "just/**"
+      - ".github/workflows/**"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "docs/**"
+      - "openspec/**"
+      - "scripts/**"
+      - "tests/**"
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "**.rs"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "Justfile"
+      - "just/**"
+      - ".github/workflows/**"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "docs/**"
+      - "openspec/**"
+      - "scripts/**"
+      - "tests/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test and Build
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: Cache Rust build outputs
+        uses: Swatinem/rust-cache@v2.9.1
+        with:
+          shared-key: ci-${{ matrix.os }}-stable-default
+
+      - name: Install just
+        uses: taiki-e/install-action@v2.77.1
+        with:
+          tool: just
+
+      - name: Check types
+        run: cargo check --workspace --locked
+
+      - name: Check formatting
+        run: just fmt-check
+
+      - name: Run Clippy
+        run: just lint
+
+      - name: Run AST lint
+        run: just ast-lint
+
+      - name: Run tests
+        run: just test
+
+      - name: Validate OpenSpec
+        if: matrix.os == 'ubuntu-latest'
+        run: just openspec-check
+

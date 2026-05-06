@@ -9,6 +9,7 @@
 - P0として、KMEやUI widgetより先に分離する。
 - 共通rule本体にrepository固有pathを持たせない。
 - repository固有のfile探索、fixture、許可対象はadapterへ閉じる。
+- CLIは提供しない。各repositoryはlibrary APIをtest/CIから呼び出す。
 - 違反形式を共通化し、各repositoryのCIや手元検証で同じ結果を読めるようにする。
 - lint除外で品質ゲートを抜ける設計にしない。
 
