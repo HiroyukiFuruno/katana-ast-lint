@@ -12,7 +12,7 @@ package:
 
 # Dry-run crates.io publication
 publish-dry-run:
-    cargo publish --dry-run --locked
+    {{CARGO}} publish --dry-run --locked
 
 # Release preflight without requiring CARGO_REGISTRY_TOKEN
 release-check: version-check publish-target-check check package publish-dry-run
@@ -38,14 +38,13 @@ release-tag:
 
 # Dispatch GitHub release workflow without crates.io publication
 release-github: release-tag
-    gh workflow run release.yml --repo {{RELEASE_REPO}} --ref main -f version="{{TAG}}" -f publish_crate=false
+    gh workflow run release.yml --repo {{RELEASE_REPO}} --ref master -f version="{{TAG}}" -f publish_crate=false
 
 # Dispatch GitHub release workflow with crates.io publication
 release-publish: release-tag
     scripts/release/assert-crate-not-published.sh "{{VERSION_BARE}}" katana-ast-lint
     gh secret list --repo {{RELEASE_REPO}} | grep -q '^CARGO_REGISTRY_TOKEN[[:space:]]' || { echo "CARGO_REGISTRY_TOKEN secret is required for crates.io publication" >&2; exit 1; }
-    gh workflow run release.yml --repo {{RELEASE_REPO}} --ref main -f version="{{TAG}}" -f publish_crate=true
+    gh workflow run release.yml --repo {{RELEASE_REPO}} --ref master -f version="{{TAG}}" -f publish_crate=true
 
 # Full release entrypoint
 release: release-publish
-

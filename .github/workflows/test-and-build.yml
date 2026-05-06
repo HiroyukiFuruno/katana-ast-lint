@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [master]
     paths:
       - "**.rs"
       - "Cargo.toml"
@@ -17,7 +17,7 @@ on:
       - "scripts/**"
       - "tests/**"
   pull_request:
-    branches: [main, master]
+    branches: [master]
     paths:
       - "**.rs"
       - "Cargo.toml"
@@ -88,4 +88,3 @@ jobs:
       - name: Validate OpenSpec
         if: matrix.os == 'ubuntu-latest'
         run: just openspec-check
-

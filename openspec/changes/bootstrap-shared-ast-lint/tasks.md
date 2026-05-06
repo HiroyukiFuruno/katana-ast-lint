@@ -99,3 +99,45 @@
 - [x] 6.1 `just check` を実行する
 - [x] 6.2 `cargo publish --dry-run --locked` を実行する
 - [x] 6.3 `scripts/openspec validate "bootstrap-shared-ast-lint" --strict` を実行する
+
+## 7. v0.2.0 Configuration Contract
+
+### Definition of Ready
+
+- [x] v0.1.0のlibrary-only APIとrepository adapter方針が確定している
+- [x] 現在のrule実装に、repository固有path、許可値、閾値、対象directoryがハードコードされていることを確認済みである
+
+### Tasks
+
+- [x] 7.1 v0.2.0では設定ファイルを `kal.json` として扱う
+- [x] 7.2 `kal.json` はrepository rootに置き、test/CI runnerが読み込む
+- [x] 7.3 `kal.json` には対象directory、除外ではない明示的な許可リスト、ruleごとの閾値、domain ruleの入力pathを定義できる
+- [x] 7.4 設定未指定時はv0.1.0互換の既定値で動作し、v0.1.0利用repositoryを壊さない
+- [x] 7.5 設定ファイルでlint失敗を隠す目的の無制限除外やrule無効化を標準仕様にしない
+- [x] 7.6 重要度とJSON出力は `kal.json` のrule設定と同じv0.2.0 OpenSpecで扱う
+- [x] 7.7 Dylint、ast-grep、Semgrepなどの外部ライブラリーを採用するか、KAL内部実装を維持するかをv0.2.0の設計判断として評価する
+
+### Definition of Done
+
+- [x] v0.2.0のOpenSpecを作る担当者が、`kal.json` の責務と禁止事項を再解釈せず着手できる
+- [x] downstream repositoryは、自分の構成差分をコード変更ではなく `kal.json` で表現する方針を参照できる
+- [x] KALはRust汎用lint基盤ではなく、katanaシリーズ共通ルールの共有境界として扱われる
+
+## 8. Current Downstream Consumption Verification
+
+- [x] 8.1 `cargo info katana-ast-lint@0.1.0 --registry crates-io` でcrates.io公開済みを確認する
+- [x] 8.2 KatanA本体 `crates/katana-linter` で `cargo add katana-ast-lint@0.1.0 --dev --dry-run` が通ることを確認する
+- [x] 8.3 `katana-document-preview/crates/kdp-linter` で `cargo add katana-ast-lint@0.1.0 --dev --dry-run` が通ることを確認する
+- [x] 8.4 `katana-language-editor/crates/kle-linter` で `cargo add katana-ast-lint@0.1.0 --dev --dry-run` が通ることを確認する
+- [x] 8.5 `katana-canvas-forge/crates/kcf-linter` で `cargo add katana-ast-lint@0.1.0 --dev --dry-run` が通ることを確認する
+- [x] 8.6 `katana-chat-ui/crates/kcu-linter` で `cargo add katana-ast-lint@0.1.0 --dev --dry-run` が通ることを確認する
+- [x] 8.7 `katana-markdown-linter` で `cargo add katana-ast-lint@0.1.0 --dev --dry-run` が通ることを確認する
+- [x] 8.8 `katana-markdown-engine` は現checkoutがOpenSpec/READMEのみでCargo manifest未作成のため、実runner確認は後続実装時の着手条件として扱う
+- [x] 8.9 `katana-ui-widget` は現checkoutが存在しないため、実runner確認はrepository作成後の着手条件として扱う
+- [x] 8.10 KatanA本体の `extract-katana-ast-lint` OpenSpecが、workspace dependency取り込みと `crates/katana-linter` のadapter境界を要求していることを確認する
+
+## 9. User Review Phase
+
+- [/] 9.1 GitHub default branchを `master` に変更する
+- [/] 9.2 remote `main` とlocal `main` を削除し、`origin/HEAD` を `master` に向ける
+- [/] 9.3 CI/CD workflowとrelease dispatchの参照を `master` 前提へ統一する
