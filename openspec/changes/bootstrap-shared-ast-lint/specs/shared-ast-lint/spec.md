@@ -60,3 +60,20 @@ The system MUST NOT treat lint exclusion as the default fix for AST lint failure
 - **WHEN** a repository cannot satisfy an AST lint rule
 - **THEN** the exception reason and alternative design are documented before bypassing
 - **THEN** the bypass is not added silently
+
+### Requirement: AST lint defines the v0.2.0 repository configuration plan
+
+The system SHALL define `kal.json` as the planned v0.2.0 repository configuration file for shared AST lint without requiring v0.1.0 to implement config loading.
+
+#### Scenario: Plan repository-specific lint inputs
+
+- **WHEN** the v0.2.0 OpenSpec is authored
+- **THEN** it defines root-level `kal.json` as the place for repository-specific target directories, thresholds, allow lists, and domain rule input paths
+- **THEN** it requires shared rules to avoid repository-specific hard-coded paths
+- **THEN** it requires missing `kal.json` to keep v0.1.0-compatible defaults
+
+#### Scenario: Plan bypass prevention
+
+- **WHEN** the v0.2.0 OpenSpec defines scoped allowances
+- **THEN** it does not define `kal.json` as an undocumented broad exclusion list
+- **THEN** it requires the exception reason and alternative design to be documented before any scoped allowance is added

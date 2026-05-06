@@ -32,7 +32,7 @@
 - [x] 2.1 v0の違反形式を対象file、line、column、messageとして定義する
 - [x] 2.2 rule idと修正方針をtest runner / reporterで束ねる
 - [x] 2.3 終了コードはcargo testの失敗として扱う
-- [ ] 2.4 重要度とJSON出力は後続拡張として別OpenSpecで扱う
+- [x] 2.4 重要度とJSON出力はv0.2.0の後続OpenSpecで扱うことを定義する
 
 ### Definition of Done
 
@@ -64,13 +64,14 @@
 
 ### Tasks
 
-- [x] 4.1 `katana-markdown-engine` の品質ゲートへ接続する
-- [x] 4.2 `katana-ui-widget` の品質ゲートへ接続する
+- [x] 4.1 `katana-markdown-engine` の着手条件へP0品質ゲート利用を接続する
+- [x] 4.2 `katana-ui-widget` の後続分離計画へP0品質ゲート利用を接続する
 - [x] 4.3 kdp、kle、kcf、KatanA統合の後続計画へ接続する
+- [x] 4.4 KatanA本体では内部 `crates/katana-linter` の単純維持ではなく、外部 `katana-ast-lint` をworkspace品質ゲートへ取り込む後続作業として扱う
 
 ### Definition of Done
 
-- [x] repositoryごとの独自lint driftを検知できる
+- [x] repositoryごとの独自lint driftを検知する計画が後続作業へ接続されている
 
 ## 5. Quality and Release Gates
 
@@ -99,3 +100,24 @@
 - [x] 6.1 `just check` を実行する
 - [x] 6.2 `cargo publish --dry-run --locked` を実行する
 - [x] 6.3 `scripts/openspec validate "bootstrap-shared-ast-lint" --strict` を実行する
+
+## 7. v0.2.0 Configuration Contract
+
+### Definition of Ready
+
+- [x] v0.1.0のlibrary-only APIとrepository adapter方針が確定している
+- [x] 現在のrule実装に、repository固有path、許可値、閾値、対象directoryがハードコードされていることを確認済みである
+
+### Tasks
+
+- [x] 7.1 v0.2.0では設定ファイルを `kal.json` として扱う
+- [x] 7.2 `kal.json` はrepository rootに置き、test/CI runnerが読み込む
+- [x] 7.3 `kal.json` には対象directory、除外ではない明示的な許可リスト、ruleごとの閾値、domain ruleの入力pathを定義できる
+- [x] 7.4 設定未指定時はv0.1.0互換の既定値で動作し、v0.1.0利用repositoryを壊さない
+- [x] 7.5 設定ファイルでlint失敗を隠す目的の無制限除外やrule無効化を標準仕様にしない
+- [x] 7.6 重要度とJSON出力は `kal.json` のrule設定と同じv0.2.0 OpenSpecで扱う
+
+### Definition of Done
+
+- [x] v0.2.0のOpenSpecを作る担当者が、`kal.json` の責務と禁止事項を再解釈せず着手できる
+- [x] downstream repositoryは、自分の構成差分をコード変更ではなく `kal.json` で表現する方針を参照できる

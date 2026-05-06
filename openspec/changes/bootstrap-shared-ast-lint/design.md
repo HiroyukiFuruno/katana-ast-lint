@@ -33,6 +33,14 @@ AST lintは次の層に分ける。
 
 v0ではlocation単位の `Violation` が対象file、line、column、messageを持つ。rule idと修正方針はtest runner / reporterの引数として束ねる。重要度とJSON出力は後続拡張にし、CLIを前提にしない。
 
+### v0.2.0 Configuration
+
+v0.2.0では、現在rule実装や各repository runnerに散らばる対象directory、許可値、閾値、domain ruleの入力pathを `kal.json` に移す。`kal.json` はrepository rootに置き、consumer repositoryのtest/CI runnerが読み込む。
+
+`kal.json` はrepository差分を表現するための設定であり、lint失敗を隠すための無制限除外やrule無効化を標準機能にしない。例外が必要な場合は、ruleの意図、準拠できない理由、代替設計をOpenSpecまたはrepository文書へ明記してから扱う。
+
+v0.1.0利用repositoryを壊さないため、設定未指定時はv0.1.0互換の既定値で動く。重要度とJSON出力は同じv0.2.0 changeで扱い、設定ファイルのrule定義と違反出力の意味を分離しない。
+
 ### Release Boundary
 
 release workflowはGitHub Releaseと任意のcrates.io publishを扱う。`CARGO_REGISTRY_TOKEN` はユーザーが登録するため、migrationとGitHub Release準備の完了条件には含めない。
@@ -45,3 +53,4 @@ P1 `katana-markdown-engine` は、実装開始前にこの共通AST lint方針�
 
 - adapter層を省くとKatanA固有pathがruleへ混ざる。
 - ruleを急いで増やしすぎると、分離前にlint運用だけが重くなる。
+- `kal.json` を単なる除外ファイルにすると、共通AST lintの品質統制が形だけになる。

@@ -12,7 +12,7 @@ package:
 
 # Dry-run crates.io publication
 publish-dry-run:
-    cargo publish --dry-run --locked
+    {{CARGO}} publish --dry-run --locked
 
 # Release preflight without requiring CARGO_REGISTRY_TOKEN
 release-check: version-check publish-target-check check package publish-dry-run
@@ -48,4 +48,3 @@ release-publish: release-tag
 
 # Full release entrypoint
 release: release-publish
-
