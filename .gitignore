@@ -3,3 +3,5 @@
 /.env
 /.rumdl_cache
 /.DS_Store
+/.serena
+/tmp

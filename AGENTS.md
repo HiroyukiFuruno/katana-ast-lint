@@ -7,3 +7,4 @@
 - Use `scripts/openspec` instead of calling a bare `openspec` command from agent instructions or local workflow docs.
 - Run `just check` before commit and release handoff.
 - Do not bypass `lefthook`, Clippy, AST lint, or OpenSpec validation.
+- Before clearing local diffs or stashes, inspect their contents and decide whether each item should be incorporated, ignored, or kept for user review.
