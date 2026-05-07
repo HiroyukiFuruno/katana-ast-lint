@@ -150,6 +150,11 @@ release PR is needed.
 - Run `just VERSION=vX.Y.Z release-github` to create or update only the GitHub
   Release.
 - Run `just VERSION=vX.Y.Z release` when crates.io publication is intended.
+- GitHub Releases require a signed annotated `vX.Y.Z` tag that GitHub reports as
+  Verified.
+- `just release` stops before dispatch when the requested version already exists
+  on crates.io.
+- crates.io publication requires the `CARGO_REGISTRY_TOKEN` GitHub secret.
 
 See [`docs/release-runbook.md`](docs/release-runbook.md) for the full release
 sequence and [`docs/quality-gates.md`](docs/quality-gates.md) for required gates.

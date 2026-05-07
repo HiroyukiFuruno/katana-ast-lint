@@ -112,12 +112,6 @@ pub struct KatanaAstLint {
     target_dirs: Vec<PathBuf>,
 }
 
-struct RuleReport<'a> {
-    rule_id: &'static str,
-    hint: &'static str,
-    violations: &'a [Violation],
-}
-
 impl KatanaAstLint {
     pub fn from_workspace() -> Self {
         let current_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
@@ -146,15 +140,27 @@ impl KatanaAstLint {
             return;
         }
 
-        let reports = Self::rule_reports(&results);
-        Self::report_rules(&reports, &self.config.reporter);
+        for (rule_id, rule_violations) in results {
+            let hint = RULE_CATALOG
+                .iter()
+                .find(|r| r.id == rule_id)
+                .map(|r| r.hint)
+                .unwrap_or("Check the documentation for remediation guidance.");
+
+            utils::ViolationReporterOps::report(
+                rule_id,
+                hint,
+                &rule_violations,
+                &self.config.reporter,
+            );
+        }
     }
 
     fn lint_all(&self) -> HashMap<&'static str, Vec<Violation>> {
         let mut results = HashMap::new();
 
         for rule_def in RULE_CATALOG.iter() {
-            let rule_config = self
+            let mut rule_config = self
                 .config
                 .rules
                 .get(rule_def.id)
@@ -163,6 +169,10 @@ impl KatanaAstLint {
 
             if !rule_config.enabled.unwrap_or(true) {
                 continue;
+            }
+
+            if rule_config.threshold.is_none() {
+                rule_config.threshold = rule_def.default_threshold;
             }
 
             let mut rule_violations = Vec::new();
@@ -202,67 +212,6 @@ impl KatanaAstLint {
         }
 
         results
-    }
-
-    fn rule_reports<'a>(results: &'a HashMap<&'static str, Vec<Violation>>) -> Vec<RuleReport<'a>> {
-        RULE_CATALOG
-            .iter()
-            .filter_map(|rule_def| {
-                results.get(rule_def.id).map(|violations| RuleReport {
-                    rule_id: rule_def.id,
-                    hint: rule_def.hint,
-                    violations,
-                })
-            })
-            .collect()
-    }
-
-    fn report_rules(reports: &[RuleReport<'_>], reporter_config: &config::ReporterConfig) {
-        match reporter_config.mode.unwrap_or_default() {
-            config::ReporterMode::Text => Self::report_rules_as_text(reports),
-            config::ReporterMode::Json => Self::report_rules_as_json(reports),
-        }
-    }
-
-    fn report_rules_as_text(reports: &[RuleReport<'_>]) {
-        let mut message = String::new();
-        let mut has_error = false;
-
-        for report in reports {
-            message.push_str(&utils::ViolationReporterOps::format_violations(
-                report.rule_id,
-                report.violations,
-            ));
-            message.push('\n');
-            message.push_str(&format!("Fix: {}\n", report.hint));
-            message.push_str("Details: See docs/quality-gates.md\n");
-
-            if report
-                .violations
-                .iter()
-                .any(|it| it.severity == Severity::Error)
-            {
-                has_error = true;
-            }
-        }
-
-        if has_error {
-            panic!("{}", message);
-        }
-        println!("{}", message);
-    }
-
-    fn report_rules_as_json(reports: &[RuleReport<'_>]) {
-        let violations: Vec<&Violation> = reports
-            .iter()
-            .flat_map(|report| report.violations.iter())
-            .collect();
-        let json = serde_json::to_string_pretty(&violations).unwrap_or_default();
-        println!("{}", json);
-
-        if violations.iter().any(|it| it.severity == Severity::Error) {
-            panic!("AST Lint failed with errors (JSON output above)");
-        }
     }
 }
 
