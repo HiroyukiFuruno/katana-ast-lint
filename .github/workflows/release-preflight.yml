@@ -53,12 +53,10 @@ jobs:
         id: version
         shell: bash
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            version="${GITHUB_HEAD_REF#release/}"
-          else
-            version="$(awk -F '"' '/^version = / { print "v" $2; exit }' Cargo.toml)"
-          fi
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          scripts/release/resolve-release-version.sh \
+            "${{ github.event_name }}" \
+            "" \
+            "${GITHUB_HEAD_REF}"
 
       - name: Release check
         run: just VERSION="${{ steps.version.outputs.version }}" release-check

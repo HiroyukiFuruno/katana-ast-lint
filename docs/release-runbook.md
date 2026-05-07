@@ -30,13 +30,17 @@ Required sequence:
 - Confirm `Cargo.toml` `package.version` is the intended version.
 - Confirm `CHANGELOG.md` has a `## vX.Y.Z` section.
 - Run `just VERSION=vX.Y.Z release-check`.
-- Create a signed annotated tag with `just VERSION=vX.Y.Z release-tag`.
-- Dispatch GitHub Release publication with `just VERSION=vX.Y.Z release-github`.
+- Merge a release PR from `release/vX.Y.Z` into `master`; the workflow creates
+  the signed annotated tag and GitHub Release automatically.
+- For one-off publication, create a signed annotated tag with
+  `just VERSION=vX.Y.Z release-tag`, then dispatch GitHub Release publication
+  with `just VERSION=vX.Y.Z release-github`.
 - After the user registers `CARGO_REGISTRY_TOKEN`, dispatch crates.io publication with `just VERSION=vX.Y.Z release-publish`.
 
 The workflow validates:
 
 - Cargo version equals release version.
+- release PR merge events come from a repository-owned `release/vX.Y.Z` branch.
 - release tag is an annotated signed tag that GitHub reports as Verified.
 - `just release-check`
 - package artifact creation
@@ -45,8 +49,12 @@ The workflow validates:
 
 ## Required Secrets
 
+- `RELEASE_GPG_KEY`: armored private key used only when a merged `release/vX.Y.Z`
+  PR needs the workflow to create the signed tag. Register it as a repository
+  secret, not as a visible repository variable.
+- `RELEASE_GPG_PASSPHRASE`: passphrase for `RELEASE_GPG_KEY` when that key is
+  protected.
 - `CARGO_REGISTRY_TOKEN`: crates.io API token used only when release dispatch sets `publish_crate=true`.
 
 The token is a publication prerequisite, not a blocker for code migration,
 OpenSpec readiness, or GitHub Release-only preparation.
-
