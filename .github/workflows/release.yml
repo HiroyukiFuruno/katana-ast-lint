@@ -4,6 +4,18 @@ on:
   pull_request:
     types: [closed]
     branches: [master]
+    paths:
+      - "**.rs"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "Justfile"
+      - "just/**"
+      - "scripts/**"
+      - "tests/**"
+      - ".clippy.toml"
+      - "rustfmt.toml"
+      - "kal.json"
+      - "lefthook.yml"
   workflow_dispatch:
     inputs:
       version:

@@ -9,13 +9,12 @@ on:
       - "Cargo.lock"
       - "Justfile"
       - "just/**"
-      - ".github/workflows/**"
-      - "README.md"
-      - "CHANGELOG.md"
-      - "docs/**"
-      - "openspec/**"
       - "scripts/**"
       - "tests/**"
+      - ".clippy.toml"
+      - "rustfmt.toml"
+      - "kal.json"
+      - "lefthook.yml"
   pull_request:
     branches: [master]
     paths:
@@ -24,13 +23,12 @@ on:
       - "Cargo.lock"
       - "Justfile"
       - "just/**"
-      - ".github/workflows/**"
-      - "README.md"
-      - "CHANGELOG.md"
-      - "docs/**"
-      - "openspec/**"
       - "scripts/**"
       - "tests/**"
+      - ".clippy.toml"
+      - "rustfmt.toml"
+      - "kal.json"
+      - "lefthook.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
