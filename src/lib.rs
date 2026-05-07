@@ -115,11 +115,31 @@ pub struct KatanaAstLint {
 impl KatanaAstLint {
     pub fn from_workspace() -> Self {
         let current_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        let config = AstLinterOps::load_config(std::slice::from_ref(&current_dir));
+        let root = Self::find_workspace_root(&current_dir).unwrap_or_else(|| current_dir.clone());
+        let config = AstLinterOps::load_config(std::slice::from_ref(&root));
         Self {
             config,
-            target_dirs: vec![current_dir],
+            target_dirs: vec![root],
         }
+    }
+
+    fn find_workspace_root(start: &Path) -> Option<PathBuf> {
+        let mut curr = start.to_path_buf();
+        loop {
+            let manifest = curr.join("Cargo.toml");
+            if manifest.exists() {
+                if std::fs::read_to_string(&manifest)
+                    .ok()
+                    .is_some_and(|s| s.contains("[workspace]"))
+                {
+                    return Some(curr);
+                }
+            }
+            if !curr.pop() {
+                break;
+            }
+        }
+        None
     }
 
     pub fn with_config(config: config::KalConfig) -> Self {

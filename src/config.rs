@@ -20,6 +20,7 @@ pub struct RuleConfig {
     pub severity: Option<Severity>,
     pub threshold: Option<usize>,
     pub reason: Option<String>,
+    pub expires_at: Option<String>,
     #[serde(default)]
     pub allow: Vec<AllowEntry>,
     #[serde(default)]
@@ -35,6 +36,7 @@ impl RuleConfig {
             severity: Some(Severity::Error),
             threshold: None,
             reason: None,
+            expires_at: None,
             allow: Vec::new(),
             inputs: Vec::new(),
         }
@@ -48,6 +50,7 @@ impl Default for RuleConfig {
             severity: Some(Severity::Error),
             threshold: None,
             reason: None,
+            expires_at: None,
             allow: Vec::new(),
             inputs: Vec::new(),
         }
