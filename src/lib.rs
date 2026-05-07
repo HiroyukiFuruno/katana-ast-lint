@@ -127,13 +127,12 @@ impl KatanaAstLint {
         let mut curr = start.to_path_buf();
         loop {
             let manifest = curr.join("Cargo.toml");
-            if manifest.exists() {
-                if std::fs::read_to_string(&manifest)
+            if manifest.exists()
+                && std::fs::read_to_string(&manifest)
                     .ok()
                     .is_some_and(|s| s.contains("[workspace]"))
-                {
-                    return Some(curr);
-                }
+            {
+                return Some(curr);
             }
             if !curr.pop() {
                 break;
