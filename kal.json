@@ -1,0 +1,13 @@
+{
+  "source_roots": ["src"],
+  "rules": {
+    "file-length": {
+      "severity": "warning",
+      "reason": "Temporary allowance for v0.2.0 added logic in src/lib.rs"
+    },
+    "nesting-depth": {
+      "severity": "warning",
+      "reason": "Temporary allowance for v0.2.0 added logic in src/lib.rs"
+    }
+  }
+}

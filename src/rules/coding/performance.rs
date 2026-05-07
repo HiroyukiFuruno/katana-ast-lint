@@ -7,6 +7,14 @@ pub struct PerformanceOps;
 
 impl PerformanceOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         let mut visitor = PerformanceVisitor::new(path.to_path_buf());
         visitor.visit_file(syntax);
         visitor.violations
@@ -53,14 +61,12 @@ impl<'ast> Visit<'ast> for PerformanceVisitor {
         let name = node.method.to_string();
         if (name == "request_repaint" || name == "set_title") && self.condition_depth == 0 {
             let (line, column) = LinterParserOps::span_location(node.method.span());
-            self.violations.push(Violation {
-                file: self.file.clone(),
+            self.violations.push(Violation::err(self.file.clone(),
                 line,
                 column,
-                message: format!(
+                format!(
                     "Unconditional `{name}()` call detected. Avoid frequent repaints or title updates in UI loops."
-                ),
-            });
+                )));
         }
         syn::visit::visit_expr_method_call(self, node);
     }

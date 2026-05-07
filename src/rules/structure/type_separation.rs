@@ -8,6 +8,14 @@ pub struct TypeSeparationOps;
 
 impl TypeSeparationOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         let mut violations = Vec::new();
         let path_str = path.to_string_lossy().replace('\\', "/");
         if path_str.contains("/tests/") || path_str.ends_with("tests.rs") {
@@ -75,14 +83,14 @@ impl TypeSeparationOps {
             .strip_prefix(std::env::current_dir().unwrap_or_default())
             .unwrap_or(path)
             .to_path_buf();
-        Violation {
-            file: rel_path,
+        Violation::err(
+            rel_path,
             line,
-            column: 1,
-            message: format!(
+            1,
+            format!(
                 "Mixed logic and data. File ({num_lines} lines) defines pub struct/enum but also contains method logic. Move types to `types.rs` or `types/` dir, or keep file under {MAX_LENGTH_FOR_MIXED_FILE} lines."
             ),
-        }
+        )
     }
 
     fn is_whitelisted_type_file(path_str: &str) -> bool {
@@ -103,7 +111,6 @@ impl TypeSeparationOps {
         if path_str.ends_with("lib.rs") || path_str.ends_with("main.rs") {
             return true;
         }
-        /* WHY: These patterns represent files where type definitions and implementation are tightly coupled by design. */
         if path_str.ends_with("defaults.rs")
             || path_str.ends_with("service.rs")
             || path_str.ends_with("repository.rs")

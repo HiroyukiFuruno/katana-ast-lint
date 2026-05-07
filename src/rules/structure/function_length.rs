@@ -9,7 +9,16 @@ pub struct FunctionLengthOps;
 
 impl FunctionLengthOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
-        let mut visitor = FunctionLengthVisitor::new(path.to_path_buf());
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
+        let max_lines = config.threshold.unwrap_or(MAX_FUNCTION_LINES);
+        let mut visitor = FunctionLengthVisitor::new(path.to_path_buf(), max_lines);
         visitor.visit_file(syntax);
         visitor.violations
     }
@@ -18,13 +27,15 @@ impl FunctionLengthOps {
 struct FunctionLengthVisitor {
     file: PathBuf,
     violations: Vec<Violation>,
+    max_lines: usize,
 }
 
 impl FunctionLengthVisitor {
-    fn new(file: PathBuf) -> Self {
+    fn new(file: PathBuf, max_lines: usize) -> Self {
         Self {
             file,
             violations: Vec::new(),
+            max_lines,
         }
     }
 
@@ -33,16 +44,17 @@ impl FunctionLengthVisitor {
         let (end, _) = LinterParserOps::span_location(block.brace_token.span.join());
         /* WHY: Both span calls return the same token's location; end is approximated from brace span. */
         let lines = end.saturating_sub(start);
-        if lines > MAX_FUNCTION_LINES {
+        if lines > self.max_lines {
             let (name_line, name_column) = LinterParserOps::span_location(name.span());
-            self.violations.push(Violation {
-                file: self.file.clone(),
-                line: name_line,
-                column: name_column,
-                message: format!(
-                    "Function `{name}` exceeds {MAX_FUNCTION_LINES}-line limit (current: {lines}). Extract helper methods."
+            self.violations.push(Violation::err(
+                self.file.clone(),
+                name_line,
+                name_column,
+                format!(
+                    "Function `{name}` exceeds {}-line limit (current: {lines}). Extract helper methods.",
+                    self.max_lines
                 ),
-            });
+            ));
         }
     }
 }

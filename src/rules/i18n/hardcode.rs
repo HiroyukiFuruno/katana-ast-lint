@@ -3,12 +3,20 @@ use crate::utils::LinterParserOps;
 use std::path::{Path, PathBuf};
 use syn::visit::Visit;
 
-use super::helpers::I18nHelperOps;
+use crate::rules::i18n::helpers::I18nHelperOps;
 
 pub struct I18nOps;
 
 impl I18nOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         let mut visitor = I18nHardcodeVisitor::new(path.to_path_buf());
         visitor.visit_file(syntax);
         visitor.violations
@@ -62,15 +70,15 @@ impl I18nHardcodeVisitor {
         let value = lit_str.value();
         if !LinterParserOps::is_allowed_string(&value) {
             let (line, column) = LinterParserOps::span_location(lit_str.span());
-            self.violations.push(Violation {
-                file: self.file.clone(),
+            self.violations.push(Violation::err(
+                self.file.clone(),
                 line,
                 column,
-                message: format!(
+                format!(
                     "Hardcoded string \"{value}\" detected in {method_name}().\
                      Please use i18n::t() or i18n::tf()."
                 ),
-            });
+            ));
         }
     }
 
@@ -89,15 +97,15 @@ impl I18nHardcodeVisitor {
                 .unwrap_or_else(proc_macro2::Span::call_site),
         );
 
-        self.violations.push(Violation {
-            file: self.file.clone(),
+        self.violations.push(Violation::err(
+            self.file.clone(),
             line,
             column,
-            message: format!(
+            format!(
                 "Hardcoded string synthesis using format!() detected in {method_name}().\
                  Please use i18n::tf()."
             ),
-        });
+        ));
     }
 
     fn check_call_for_ui_violation(&mut self, node: &syn::ExprCall) {
@@ -153,7 +161,11 @@ mod tests {
     fn lint_i18n_allows_symbol_strings() {
         let code = r#"fn render(ui: &mut Ui) { ui.label("x"); ui.label("●"); }"#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = I18nOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = I18nOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert_eq!(violations.len(), 0);
     }
 
@@ -165,7 +177,11 @@ mod tests {
             }
         "#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = I18nOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = I18nOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert!(!violations.is_empty());
     }
 }

@@ -8,6 +8,14 @@ pub struct ProcessCommandOps;
 
 impl ProcessCommandOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         let mut visitor = ProcessCommandVisitor::new(path.to_path_buf());
         visitor.visit_file(syntax);
         visitor.violations
@@ -35,16 +43,16 @@ impl ProcessCommandVisitor {
             return;
         }
         let (line, column) = LinterParserOps::span_location(node.span());
-        self.violations.push(Violation {
-            file: self.file.clone(),
+        self.violations.push(Violation::err(
+            self.file.clone(),
             line,
             column,
-            message: "Use of `Command::new` detected. You MUST use \
+            "Use of `Command::new` detected. You MUST use \
                       `crate::system::ProcessService::create_command` instead to \
                       enforce cross-platform silent execution (CREATE_NO_WINDOW) policies \
                       and prevent console windows from popping up on Windows."
                 .to_string(),
-        });
+        ));
     }
 }
 
@@ -94,7 +102,11 @@ mod tests {
     fn detects_raw_command_new() {
         let code = r#"fn call_process() { let mut cmd = std::process::Command::new("ls"); }"#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = ProcessCommandOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = ProcessCommandOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert_eq!(violations.len(), 1);
         assert!(
             violations[0]
@@ -107,7 +119,11 @@ mod tests {
     fn ignores_command_in_process_service() {
         let code = r#"fn call_process() { let mut cmd = std::process::Command::new("ls"); }"#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = ProcessCommandOps::lint(&PathBuf::from("system/process.rs"), &syntax);
+        let violations = ProcessCommandOps::lint_with_config(
+            &PathBuf::from("system/process.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert_eq!(violations.len(), 0);
     }
 }

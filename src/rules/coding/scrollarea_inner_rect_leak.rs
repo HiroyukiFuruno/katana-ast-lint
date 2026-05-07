@@ -7,6 +7,14 @@ pub struct ScrollAreaInnerRectLeakOps;
 
 impl ScrollAreaInnerRectLeakOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         let source = std::fs::read_to_string(path).unwrap_or_default();
         let lines: Vec<&str> = source.lines().collect();
 
@@ -58,14 +66,11 @@ impl<'ast, 'a> Visit<'ast> for ScrollAreaInnerRectLeakVisitor<'a> {
         if Self::is_rect_field(&node.left) && Self::is_inner_rect_field(&node.right) {
             let (line, column) = LinterParserOps::span_location(node.eq_token.spans[0]);
             if !self.is_suppressed(line) {
-                self.violations.push(Violation {
-                    file: self.file_path.clone(),
+                self.violations.push(Violation::err(self.file_path.clone(),
                     line,
                     column,
-                    message:
-                        "Do not assign `ScrollArea::inner_rect` directly to a parent-facing `rect`. That leaks unclipped content size into the parent layout and can cause ratchet growth (expand but not shrink)."
-                            .to_string(),
-                });
+                    "Do not assign `ScrollArea::inner_rect` directly to a parent-facing `rect`. That leaks unclipped content size into the parent layout and can cause ratchet growth (expand but not shrink)."
+                            .to_string()));
             }
         }
         syn::visit::visit_expr_assign(self, node);
@@ -88,7 +93,11 @@ mod tests {
         )
         .expect("test source should parse");
 
-        let violations = ScrollAreaInnerRectLeakOps::lint(Path::new("/tmp/demo.rs"), &syntax);
+        let violations = ScrollAreaInnerRectLeakOps::lint_with_config(
+            Path::new("/tmp/demo.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert_eq!(violations.len(), 1);
     }
 }

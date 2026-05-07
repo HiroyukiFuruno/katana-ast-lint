@@ -3,12 +3,20 @@ use crate::utils::LinterParserOps;
 use std::path::{Path, PathBuf};
 use syn::visit::Visit;
 
-use super::helpers::I18nHelperOps;
+use crate::rules::i18n::helpers::I18nHelperOps;
 
 pub struct IconOps;
 
 impl IconOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         let mut visitor = IconFacadeVisitor::new(path.to_path_buf());
         visitor.visit_file(syntax);
         visitor.violations
@@ -35,15 +43,15 @@ impl IconFacadeVisitor {
                     let value = lit_str.value();
                     if I18nHelperOps::is_raw_icon(&value) {
                         let (line, column) = LinterParserOps::span_location(lit_str.span());
-                        self.violations.push(Violation {
-                            file: self.file.clone(),
+                        self.violations.push(Violation::err(
+                            self.file.clone(),
                             line,
                             column,
-                            message: format!(
+                            format!(
                                 "Raw icon string \"{value}\" detected in {context}. \
                                  Please use `Icon::Name.as_str()` instead."
                             ),
-                        });
+                        ));
                     }
                 }
             }
@@ -115,7 +123,11 @@ mod tests {
     fn lint_i18n_detects_raw_icon_in_label() {
         let code = r#"fn render(ui: &mut Ui) { ui.label("🔄"); }"#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = IconOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = IconOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert!(!violations.is_empty());
         assert!(violations[0].message.contains("Raw icon string"));
     }

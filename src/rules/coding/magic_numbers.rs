@@ -7,6 +7,14 @@ pub struct MagicNumberOps;
 
 impl MagicNumberOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         let mut visitor = MagicNumberVisitor::new(path.to_path_buf());
         visitor.visit_file(syntax);
         visitor.violations
@@ -52,14 +60,12 @@ impl MagicNumberVisitor {
     fn check_numeric_value(&mut self, value: f64, span: proc_macro2::Span) {
         if !LinterParserOps::is_allowed_number(value) {
             let (line, column) = LinterParserOps::span_location(span);
-            self.violations.push(Violation {
-                file: self.file.clone(),
+            self.violations.push(Violation::err(
+                self.file.clone(),
                 line,
                 column,
-                message: format!(
-                    "Magic number {value} detected. Please extract to a named constant."
-                ),
-            });
+                format!("Magic number {value} detected. Please extract to a named constant."),
+            ));
         }
     }
 }
@@ -125,7 +131,11 @@ mod tests {
     fn detects_literal_in_function() {
         let code = r#"fn foo() -> f32 { let x: f32 = 42.0; x }"#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = MagicNumberOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = MagicNumberOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert!(!violations.is_empty());
         assert!(violations[0].message.contains("42"));
     }
@@ -134,7 +144,11 @@ mod tests {
     fn allows_literal_in_const() {
         let code = r#"const FOO: f32 = 42.0;"#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = MagicNumberOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = MagicNumberOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert_eq!(violations.len(), 0);
     }
 }

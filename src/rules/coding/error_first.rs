@@ -7,6 +7,14 @@ pub struct ErrorFirstOps;
 
 impl ErrorFirstOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         let mut visitor = ErrorFirstVisitor::new(path.to_path_buf());
         visitor.visit_file(syntax);
         visitor.violations
@@ -38,12 +46,10 @@ impl ErrorFirstVisitor {
 
             if is_ok {
                 let (line, column) = LinterParserOps::span_location(let_expr.let_token.span);
-                self.violations.push(Violation {
-                    file: self.file.clone(),
+                self.violations.push(Violation::err(self.file.clone(),
                     line,
                     column,
-                    message: "Do not nest success paths with `if let Ok(...)`. Use `?` or `let-else` to fail early.".to_string(),
-                });
+                    "Do not nest success paths with `if let Ok(...)`. Use `?` or `let-else` to fail early.".to_string()));
             }
         }
     }
@@ -65,7 +71,11 @@ mod tests {
     fn detects_if_let_ok() {
         let code = r#"fn foo() { if let Ok(val) = result { val } }"#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = ErrorFirstOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = ErrorFirstOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert_eq!(violations.len(), 1);
         assert!(violations[0].message.contains("if let Ok"));
     }

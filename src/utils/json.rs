@@ -10,21 +10,21 @@ pub struct LinterJsonOps;
 impl LinterJsonOps {
     pub fn parse_json_file(path: &Path) -> Result<Value, Vec<Violation>> {
         let source = std::fs::read_to_string(path).map_err(|err| {
-            vec![Violation {
-                file: path.to_path_buf(),
-                line: 0,
-                column: 0,
-                message: format!("Locale file read error: {err}"),
-            }]
+            vec![Violation::err(
+                path.to_path_buf(),
+                0,
+                0,
+                format!("Locale file read error: {err}"),
+            )]
         })?;
 
         serde_json::from_str(&source).map_err(|err| {
-            vec![Violation {
-                file: path.to_path_buf(),
-                line: err.line(),
-                column: err.column(),
-                message: format!("Locale JSON parse error: {err}"),
-            }]
+            vec![Violation::err(
+                path.to_path_buf(),
+                err.line(),
+                err.column(),
+                format!("Locale JSON parse error: {err}"),
+            )]
         })
     }
 
