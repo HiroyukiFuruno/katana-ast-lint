@@ -31,7 +31,8 @@ Required sequence:
 - Confirm `CHANGELOG.md` has a `## vX.Y.Z` section.
 - Run `just VERSION=vX.Y.Z release-check`.
 - Merge a release PR from `release/vX.Y.Z` into `master`; the workflow creates
-  the signed annotated tag and GitHub Release automatically.
+  the signed annotated tag, GitHub Release, and crates.io publication
+  automatically.
 - For one-off publication, create a signed annotated tag with
   `just VERSION=vX.Y.Z release-tag`, then dispatch GitHub Release publication
   with `just VERSION=vX.Y.Z release-github`.
@@ -45,7 +46,8 @@ The workflow validates:
 - `just release-check`
 - package artifact creation
 - GitHub Release creation or update
-- optional crates.io publication when `publish_crate=true`
+- crates.io publication for merged `release/vX.Y.Z` PRs
+- optional crates.io publication for manual dispatch when `publish_crate=true`
 
 ## Required Secrets
 
@@ -54,7 +56,8 @@ The workflow validates:
   secret, not as a visible repository variable.
 - `RELEASE_GPG_PASSPHRASE`: passphrase for `RELEASE_GPG_KEY` when that key is
   protected.
-- `CARGO_REGISTRY_TOKEN`: crates.io API token used only when release dispatch sets `publish_crate=true`.
+- `CARGO_REGISTRY_TOKEN`: crates.io API token used by merged `release/vX.Y.Z`
+  PRs and manual dispatch when `publish_crate=true`.
 
 The token is a publication prerequisite, not a blocker for code migration,
 OpenSpec readiness, or GitHub Release-only preparation.
