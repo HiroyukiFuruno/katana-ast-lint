@@ -3,11 +3,23 @@
   "rules": {
     "file-length": {
       "severity": "warning",
-      "reason": "Temporary allowance for v0.2.0 added logic in src/lib.rs"
+      "reason": "Temporary allowance for v0.2.0 added logic in src/lib.rs",
+      "expires_at": "2026-08-01"
     },
     "nesting-depth": {
       "severity": "warning",
-      "reason": "Temporary allowance for v0.2.0 added logic in src/lib.rs"
+      "reason": "Temporary allowance for v0.2.0 added logic in src/lib.rs",
+      "expires_at": "2026-08-01"
+    },
+    "error-first": {
+      "severity": "warning",
+      "reason": "Temporary allowance for v0.3.0 added KatanaAstLint logic in src/lib.rs",
+      "expires_at": "2026-08-01"
+    },
+    "comment-style": {
+      "severity": "warning",
+      "reason": "Temporary allowance for v0.3.0 added KatanaAstLint logic in src/lib.rs",
+      "expires_at": "2026-08-01"
     }
   }
 }
