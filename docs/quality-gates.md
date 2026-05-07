@@ -14,7 +14,16 @@
 
 ## AST Lint Invariants
 
-`just ast-lint` protects invariants that normal compiler checks do not cover:
+`just ast-lint` protects invariants that normal compiler checks do not cover. The recommended way to run these in a consumer repository is via the one-line runner API:
+
+```rust
+#[test]
+fn repository_ast_lint() {
+    katana_ast_lint::KatanaAstLint::from_workspace().assert_clean();
+}
+```
+
+The standard rule set includes:
 
 - source code must not contain lazy macros such as `todo!`, `unimplemented!`, or `dbg!`
 - `#[allow(dead_code)]` must not be used as a cleanup substitute
@@ -22,8 +31,23 @@
 - function bodies must stay focused
 - nesting depth must stay shallow
 - public types must stay separated from large implementation files
+- i18n and icon consistency rules
 
-Consumer repositories can add their own adapter tests around the public rule API.
+## Configuration
+
+Customized behavior belongs in `kal.json` in the workspace root. See `src/config.rs` for the full schema.
+
+```json
+{
+  "source_roots": ["src"],
+  "rules": {
+    "file-length": {
+      "threshold": 300,
+      "severity": "warning"
+    }
+  }
+}
+```
 
 ## CI Required Checks
 
@@ -42,4 +66,3 @@ just VERSION=vX.Y.Z release-check
 
 The crates.io token is intentionally not required by `release-check`. It is
 only required when `publish_crate=true` is used in the release workflow.
-

@@ -21,7 +21,7 @@
   <a href="https://github.com/HiroyukiFuruno/katana-ast-lint/actions/workflows/test-and-build.yml"><img src="https://github.com/HiroyukiFuruno/katana-ast-lint/actions/workflows/test-and-build.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/HiroyukiFuruno/katana-ast-lint/releases/latest"><img src="https://img.shields.io/github/v/release/HiroyukiFuruno/katana-ast-lint" alt="Latest Release"></a>
   <a href="https://crates.io/crates/katana-ast-lint"><img src="https://img.shields.io/crates/v/katana-ast-lint.svg" alt="crates.io"></a>
-  <a href="https://docs.rs/katana-ast-lint"><img src="https://docs.rs/katana-ast-lint/badge.svg" alt="docs.rs"></a>
+  <a href="https://docs.rs/katana-ast-lint"><img src="https://img.shields.io/badge/docs.rs-katana--ast--lint-blue" alt="docs.rs"></a>
   <img src="https://img.shields.io/badge/library-only-2563EB" alt="Library only">
 </p>
 
@@ -45,6 +45,7 @@ libraries when that makes the shared rules more robust.
 
 ## Features
 
+- **One-line Repository Runner** to execute all standard rules with a single call.
 - **Shared Rust AST rules** migrated from the KatanA workspace.
 - **Structured violations** with file, line, column, and message fields.
 - **Adapter-friendly API** so repository-specific paths and fixtures stay out of
@@ -52,8 +53,6 @@ libraries when that makes the shared rules more robust.
 - **Repository quality gates** for KME, preview, editor, export, widget, and
   KatanA integration work.
 - **Library-only boundary** with no `[[bin]]` target and no CLI contract.
-- **KML-style release flow** with signed tags, GitHub Releases, crates.io
-  publication, and release preflight checks.
 
 ## Installation
 
@@ -72,7 +71,16 @@ katana-ast-lint = { path = "../katana-ast-lint" }
 
 ## Library API
 
-Parse a Rust source file and run an individual rule:
+Run a repository gate from an integration test using the recommended one-line runner:
+
+~~~rust
+#[test]
+fn repository_ast_lint() {
+    katana_ast_lint::KatanaAstLint::from_workspace().assert_clean();
+}
+~~~
+
+Alternatively, run an individual rule:
 
 ~~~rust
 use katana_ast_lint::rules::LazyCodeOps;
@@ -82,30 +90,6 @@ use std::path::Path;
 let path = Path::new("src/lib.rs");
 let syntax = LinterParserOps::parse_file(path)?;
 let violations = LazyCodeOps::lint(path, &syntax);
-~~~
-
-Run a repository gate from an integration test:
-
-~~~rust
-use katana_ast_lint::AstLinterOps;
-use katana_ast_lint::rules::{FileLengthOps, FunctionLengthOps};
-use std::path::PathBuf;
-
-let source_roots = vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src")];
-
-AstLinterOps::run_with_configured_rule(
-    "file-length",
-    "Split files that exceed the responsibility boundary.",
-    &source_roots,
-    FileLengthOps::lint_with_config,
-);
-
-AstLinterOps::run_with_configured_rule(
-    "function-length",
-    "Extract helper methods when functions grow too large.",
-    &source_roots,
-    FunctionLengthOps::lint_with_config,
-);
 ~~~
 
 ## Downstream Integration
@@ -121,13 +105,21 @@ Recommended shape:
 crates/<repo>-linter/
   Cargo.toml
   tests/ast_linter.rs
+kal.json
 just/quality.just
 ~~~
 
-The common rules must not hard-code KME, preview, editor, export, widget, or
-KatanA paths. Repository differences belong in the consumer adapter. The planned
-v0.2.0 configuration contract will formalize those repository differences in
-`kal.json`.
+The `kal.json` file in the repository root allows you to configure source roots,
+rule severities, and thresholds:
+
+~~~json
+{
+  "source_roots": ["src"],
+  "rules": {
+    "file-length": { "threshold": 300 }
+  }
+}
+~~~
 
 ## Quality Gates
 
@@ -148,17 +140,6 @@ just test
 just openspec-check
 ~~~
 
-Dependency maintenance follows the same Justfile entrypoint shape as KatanA and
-KML:
-
-~~~bash
-just update-safe
-just update
-~~~
-
-`just update-safe` respects the current `Cargo.toml` SemVer ranges. `just update`
-uses `cargo upgrade -i` and then refreshes `Cargo.lock`.
-
 ## Release Policy
 
 `Cargo.toml` is the version source of truth. Release branches should use the
@@ -169,11 +150,6 @@ release PR is needed.
 - Run `just VERSION=vX.Y.Z release-github` to create or update only the GitHub
   Release.
 - Run `just VERSION=vX.Y.Z release` when crates.io publication is intended.
-- GitHub Releases require a signed annotated `vX.Y.Z` tag that GitHub reports as
-  Verified.
-- `just release` stops before dispatch when the requested version already exists
-  on crates.io.
-- crates.io publication requires the `CARGO_REGISTRY_TOKEN` GitHub secret.
 
 See [`docs/release-runbook.md`](docs/release-runbook.md) for the full release
 sequence and [`docs/quality-gates.md`](docs/quality-gates.md) for required gates.

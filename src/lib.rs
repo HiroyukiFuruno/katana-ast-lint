@@ -22,6 +22,7 @@ pub mod rules;
 pub mod utils;
 
 use crate::config::Severity;
+use crate::rules::{RULE_CATALOG, RuleImplementation};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
@@ -106,6 +107,165 @@ thread_local! {
     static AST_CACHE: RefCell<HashMap<PathBuf, Rc<syn::File>>> = RefCell::new(HashMap::new());
 }
 
+pub struct KatanaAstLint {
+    config: config::KalConfig,
+    target_dirs: Vec<PathBuf>,
+}
+
+struct RuleReport<'a> {
+    rule_id: &'static str,
+    hint: &'static str,
+    violations: &'a [Violation],
+}
+
+impl KatanaAstLint {
+    pub fn from_workspace() -> Self {
+        let current_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let config = AstLinterOps::load_config(std::slice::from_ref(&current_dir));
+        Self {
+            config,
+            target_dirs: vec![current_dir],
+        }
+    }
+
+    pub fn with_config(config: config::KalConfig) -> Self {
+        let current_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        Self {
+            config,
+            target_dirs: vec![current_dir],
+        }
+    }
+
+    pub fn violations(&self) -> Vec<Violation> {
+        self.lint_all().into_values().flatten().collect()
+    }
+
+    pub fn assert_clean(&self) {
+        let results = self.lint_all();
+        if results.is_empty() {
+            return;
+        }
+
+        let reports = Self::rule_reports(&results);
+        Self::report_rules(&reports, &self.config.reporter);
+    }
+
+    fn lint_all(&self) -> HashMap<&'static str, Vec<Violation>> {
+        let mut results = HashMap::new();
+
+        for rule_def in RULE_CATALOG.iter() {
+            let rule_config = self
+                .config
+                .rules
+                .get(rule_def.id)
+                .cloned()
+                .unwrap_or_else(|| config::RuleConfig::default_for_rule(rule_def.id));
+
+            if !rule_config.enabled.unwrap_or(true) {
+                continue;
+            }
+
+            let mut rule_violations = Vec::new();
+
+            let source_roots = if !rule_config.inputs.is_empty() {
+                &rule_config.inputs
+            } else if !self.config.source_roots.is_empty() {
+                &self.config.source_roots
+            } else {
+                &self.target_dirs
+            };
+
+            for source_root in source_roots {
+                match &rule_def.implementation {
+                    RuleImplementation::RustFile(lint_fn) => {
+                        AstLinterOps::lint_directory(
+                            source_root,
+                            &rule_config,
+                            *lint_fn,
+                            &mut rule_violations,
+                        );
+                    }
+                    RuleImplementation::Directory(lint_dir_fn) => {
+                        let violations = lint_dir_fn(source_root);
+                        let severity = rule_config.severity.unwrap_or(rule_def.default_severity);
+                        for mut v in violations {
+                            v.severity = severity;
+                            rule_violations.push(v);
+                        }
+                    }
+                }
+            }
+
+            if !rule_violations.is_empty() {
+                results.insert(rule_def.id, rule_violations);
+            }
+        }
+
+        results
+    }
+
+    fn rule_reports<'a>(results: &'a HashMap<&'static str, Vec<Violation>>) -> Vec<RuleReport<'a>> {
+        RULE_CATALOG
+            .iter()
+            .filter_map(|rule_def| {
+                results.get(rule_def.id).map(|violations| RuleReport {
+                    rule_id: rule_def.id,
+                    hint: rule_def.hint,
+                    violations,
+                })
+            })
+            .collect()
+    }
+
+    fn report_rules(reports: &[RuleReport<'_>], reporter_config: &config::ReporterConfig) {
+        match reporter_config.mode.unwrap_or_default() {
+            config::ReporterMode::Text => Self::report_rules_as_text(reports),
+            config::ReporterMode::Json => Self::report_rules_as_json(reports),
+        }
+    }
+
+    fn report_rules_as_text(reports: &[RuleReport<'_>]) {
+        let mut message = String::new();
+        let mut has_error = false;
+
+        for report in reports {
+            message.push_str(&utils::ViolationReporterOps::format_violations(
+                report.rule_id,
+                report.violations,
+            ));
+            message.push('\n');
+            message.push_str(&format!("Fix: {}\n", report.hint));
+            message.push_str("Details: See docs/quality-gates.md\n");
+
+            if report
+                .violations
+                .iter()
+                .any(|it| it.severity == Severity::Error)
+            {
+                has_error = true;
+            }
+        }
+
+        if has_error {
+            panic!("{}", message);
+        }
+        println!("{}", message);
+    }
+
+    fn report_rules_as_json(reports: &[RuleReport<'_>]) {
+        let violations: Vec<&Violation> = reports
+            .iter()
+            .flat_map(|report| report.violations.iter())
+            .collect();
+        let json = serde_json::to_string_pretty(&violations).unwrap_or_default();
+        println!("{}", json);
+
+        if violations.iter().any(|it| it.severity == Severity::Error) {
+            panic!("AST Lint failed with errors (JSON output above)");
+        }
+    }
+}
+
 pub struct AstLinterOps;
 
 impl AstLinterOps {
@@ -143,7 +303,7 @@ impl AstLinterOps {
         None
     }
 
-    fn load_config(target_dirs: &[PathBuf]) -> config::KalConfig {
+    pub(crate) fn load_config(target_dirs: &[PathBuf]) -> config::KalConfig {
         match Self::find_config_file(target_dirs) {
             Some(config_path) => {
                 config::KalConfig::load_from_path(&config_path).unwrap_or_else(|e| {
@@ -224,7 +384,7 @@ impl AstLinterOps {
         utils::ViolationReporterOps::report(rule_name, hint, &all_violations, &config.reporter);
     }
 
-    fn lint_directory(
+    pub(crate) fn lint_directory(
         target_dir: &Path,
         rule_config: &config::RuleConfig,
         lint_fn: impl Fn(&Path, &syn::File, &config::RuleConfig) -> Vec<Violation>,
