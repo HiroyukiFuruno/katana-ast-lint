@@ -38,16 +38,22 @@ fn with_config_lints_current_directory_when_roots_are_not_configured() {
 
     std::env::set_current_dir(&original_dir).unwrap();
 
-    assert!(result.is_err(), "Linter should have found todo!() in lib.rs");
+    assert!(
+        result.is_err(),
+        "Linter should have found todo!() in lib.rs"
+    );
 }
 
 #[test]
 fn with_config_respects_custom_config() {
     let mut config = KalConfig::default();
-    config.rules.insert("lazy-code".to_string(), katana_ast_lint::config::RuleConfig {
-        enabled: Some(false),
-        ..Default::default()
-    });
+    config.rules.insert(
+        "lazy-code".to_string(),
+        katana_ast_lint::config::RuleConfig {
+            enabled: Some(false),
+            ..Default::default()
+        },
+    );
 
     let project = TempProject::new();
     let original_dir = std::env::current_dir().unwrap();
