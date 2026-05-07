@@ -7,6 +7,14 @@ pub struct ProhibitedAttributesOps;
 
 impl ProhibitedAttributesOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         let mut visitor = ProhibitedAttributesVisitor::new(path.to_path_buf());
         visitor.visit_file(syntax);
         visitor.violations
@@ -45,14 +53,13 @@ impl ProhibitedAttributesVisitor {
             if let syn::Meta::Path(path) = meta
                 && path.is_ident("dead_code")
             {
-                self.violations.push(Violation {
-                    file: self.file.clone(),
-                    line: attr.span().start().line,
-                    column: attr.span().start().column,
-                    message:
-                        "Prohibited attribute: #[allow(dead_code)] is NOT allowed by system policy."
-                            .to_string(),
-                });
+                self.violations.push(Violation::err(
+                    self.file.clone(),
+                    attr.span().start().line,
+                    attr.span().start().column,
+                    "Prohibited attribute: #[allow(dead_code)] is NOT allowed by system policy."
+                        .to_string(),
+                ));
             }
         }
     }
@@ -89,7 +96,11 @@ mod tests {
     fn detects_allow_dead_code() {
         let code = r#"#[allow(dead_code)] fn foo() {}"#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = ProhibitedAttributesOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = ProhibitedAttributesOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert_eq!(violations.len(), 1);
         assert!(violations[0].message.contains("dead_code"));
     }

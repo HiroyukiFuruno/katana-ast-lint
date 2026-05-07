@@ -18,6 +18,14 @@ pub struct ConditionalFrameOps;
 
 impl ConditionalFrameOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         /* WHY: widgets/menu_button/mod.rs is the canonical wrapper around ui.menu_button().
         All other call-sites must use MenuButtonOps::show() so egui's conditional-frame
         behavior is confined behind a single abstraction boundary. */
@@ -86,12 +94,12 @@ impl<'ast> Visit<'ast> for ConditionalFrameVisitor<'_> {
                         }
                         _ => unreachable!(),
                     };
-                    self.violations.push(Violation {
-                        file: self.file_path.clone(),
+                    self.violations.push(Violation::err(
+                        self.file_path.clone(),
                         line,
                         column,
-                        message: msg.to_string(),
-                    });
+                        msg.to_string(),
+                    ));
                 }
             }
             _ => {}

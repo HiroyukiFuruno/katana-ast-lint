@@ -7,17 +7,25 @@ const MAX_TEST_LINES: usize = 300;
 pub struct FileLengthOps;
 
 impl FileLengthOps {
-    pub fn lint(path: &Path, _syntax: &syn::File) -> Vec<Violation> {
+    pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        _syntax: &syn::File,
+        config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         let path_str = path.to_string_lossy().replace('\\', "/");
         let is_test = path_str.contains("/tests/") || path_str.ends_with("tests.rs");
 
-        let max_allowed = if is_test {
+        let max_allowed = config.threshold.unwrap_or(if is_test {
             MAX_TEST_LINES
         } else {
             MAX_SOURCE_LINES
-        };
+        });
 
         let Ok(content) = std::fs::read_to_string(path) else {
             return violations;
@@ -41,14 +49,14 @@ impl FileLengthOps {
         }
 
         if lines > max_allowed {
-            violations.push(Violation {
-                file: path.to_path_buf(),
-                line: 1,
-                column: 1,
-                message: format!(
+            violations.push(Violation::err(
+                path.to_path_buf(),
+                1,
+                1,
+                format!(
                     "File exceeds {max_allowed}-line limit (current: {lines}, excluding tests). Treat this as a responsibility-boundary failure: split by cohesive concerns, not by moving arbitrary lines."
                 ),
-            });
+            ));
         }
 
         violations

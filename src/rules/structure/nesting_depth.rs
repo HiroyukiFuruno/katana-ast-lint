@@ -9,7 +9,16 @@ pub struct NestingDepthOps;
 
 impl NestingDepthOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
-        let mut visitor = NestingDepthVisitor::new(path.to_path_buf());
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
+        let max_depth = config.threshold.unwrap_or(MAX_NESTING_DEPTH);
+        let mut visitor = NestingDepthVisitor::new(path.to_path_buf(), max_depth);
         visitor.visit_file(syntax);
         visitor.violations
     }
@@ -19,29 +28,31 @@ struct NestingDepthVisitor {
     file: PathBuf,
     violations: Vec<Violation>,
     current_depth: usize,
+    max_depth: usize,
 }
 
 impl NestingDepthVisitor {
-    fn new(file: PathBuf) -> Self {
+    fn new(file: PathBuf, max_depth: usize) -> Self {
         Self {
             file,
             violations: Vec::new(),
             current_depth: 0,
+            max_depth,
         }
     }
 
     fn check_depth(&mut self, span: proc_macro2::Span) {
-        if self.current_depth > MAX_NESTING_DEPTH {
+        if self.current_depth > self.max_depth {
             let (line, column) = LinterParserOps::span_location(span);
-            self.violations.push(Violation {
-                file: self.file.clone(),
+            self.violations.push(Violation::err(
+                self.file.clone(),
                 line,
                 column,
-                message: format!(
-                    "Nesting depth {0} exceeds {MAX_NESTING_DEPTH} levels. Use early returns or extract helpers.",
-                    self.current_depth
+                format!(
+                    "Nesting depth {0} exceeds {1} levels. Use early returns or extract helpers.",
+                    self.current_depth, self.max_depth
                 ),
-            });
+            ));
         }
     }
 }
@@ -91,6 +102,7 @@ impl<'ast> Visit<'ast> for NestingDepthVisitor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::RuleConfig;
     use std::path::PathBuf;
 
     #[test]
@@ -109,7 +121,11 @@ mod tests {
             }
         "#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = NestingDepthOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = NestingDepthOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &RuleConfig::default(),
+        );
         assert_eq!(violations.len(), 1);
         assert!(violations[0].message.contains("4"));
     }
@@ -126,7 +142,11 @@ mod tests {
             }
         "#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = NestingDepthOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = NestingDepthOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &RuleConfig::default(),
+        );
         assert!(violations.is_empty());
     }
 }

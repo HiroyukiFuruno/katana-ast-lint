@@ -7,6 +7,14 @@ pub struct PubFreeFnOps;
 
 impl PubFreeFnOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         let mut visitor = PubFreeFnVisitor::new(path.to_path_buf());
         visitor.visit_file(syntax);
         visitor.violations
@@ -69,16 +77,16 @@ impl<'ast> Visit<'ast> for PubFreeFnVisitor {
 
         if is_pub {
             let (line, column) = LinterParserOps::span_location(node.sig.ident.span());
-            self.violations.push(Violation {
-                file: self.file.clone(),
+            self.violations.push(Violation::err(
+                self.file.clone(),
                 line,
                 column,
-                message: format!(
+                format!(
                     "Public free function `{}` detected at module level. \
                      Domain logic should be in `struct` + `impl` blocks (coding-rules §1.1).",
                     node.sig.ident
                 ),
-            });
+            ));
         }
 
         syn::visit::visit_item_fn(self, node);
@@ -94,7 +102,11 @@ mod tests {
     fn detects_pub_free_fn() {
         let code = r#"pub fn helper() {}"#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = PubFreeFnOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = PubFreeFnOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert_eq!(violations.len(), 1);
         assert!(violations[0].message.contains("helper"));
     }
@@ -103,7 +115,11 @@ mod tests {
     fn detects_pub_crate_free_fn() {
         let code = r#"pub(crate) fn internal_helper() {}"#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = PubFreeFnOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = PubFreeFnOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert_eq!(violations.len(), 1);
     }
 
@@ -111,7 +127,11 @@ mod tests {
     fn allows_private_free_fn() {
         let code = r#"fn private_helper() {}"#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = PubFreeFnOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = PubFreeFnOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert!(violations.is_empty());
     }
 
@@ -119,7 +139,11 @@ mod tests {
     fn allows_main_fn() {
         let code = r#"pub fn main() {}"#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = PubFreeFnOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = PubFreeFnOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert!(violations.is_empty());
     }
 
@@ -132,7 +156,11 @@ mod tests {
             }
         "#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = PubFreeFnOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = PubFreeFnOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert!(violations.is_empty());
     }
 
@@ -145,7 +173,11 @@ mod tests {
             }
         "#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = PubFreeFnOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = PubFreeFnOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert!(violations.is_empty());
     }
 }

@@ -8,6 +8,14 @@ pub struct ProhibitedTypesOps;
 
 impl ProhibitedTypesOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         let mut visitor = ProhibitedTypesVisitor {
             file_path: path.to_path_buf(),
             violations: Vec::new(),
@@ -35,12 +43,10 @@ impl<'ast> Visit<'ast> for ProhibitedTypesVisitor {
         /* WHY: Only the fully-qualified std::sync::RwLock is prohibited; a bare `RwLock` may be parking_lot or egui imported via `use`. */
         if path_str == "std::sync::RwLock" {
             let (line, column) = LinterParserOps::span_location(ty_path.path.span());
-            self.violations.push(Violation {
-                file: self.file_path.clone(),
+            self.violations.push(Violation::err(self.file_path.clone(),
                 line,
                 column,
-                message: "Use `egui::mutex::RwLock` or `parking_lot::RwLock` instead of `std::sync::RwLock` for better performance and deadlock avoidance.".to_string(),
-            });
+                "Use `egui::mutex::RwLock` or `parking_lot::RwLock` instead of `std::sync::RwLock` for better performance and deadlock avoidance.".to_string()));
         }
         syn::visit::visit_type_path(self, ty_path);
     }

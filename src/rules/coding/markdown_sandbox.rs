@@ -11,6 +11,14 @@ pub struct MarkdownSandboxOps;
 
 impl MarkdownSandboxOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         let mut visitor = MarkdownSandboxVisitor {
             violations: Vec::new(),
             found_viewer_invocation: false,
@@ -20,12 +28,10 @@ impl MarkdownSandboxOps {
 
         /* WHY: If we found a viewer invocation but NO max_width usage in the file, error. */
         if visitor.found_viewer_invocation && !visitor.found_set_max_width {
-            visitor.violations.push(Violation {
-                file: path.to_path_buf(),
-                line: 1, // file-level violation
-                column: 1,
-                message: "Layout Ratchet Bug: `CommonMarkViewer` is invoked but `set_max_width` is missing in this file. You MUST sandbox the viewer call within `ui.scope(|ui| { ui.set_max_width(ui.available_width()); ... })`.".to_string(),
-            });
+            visitor.violations.push(Violation::err(path.to_path_buf(),
+                1, // file-level violation
+                1,
+                "Layout Ratchet Bug: `CommonMarkViewer` is invoked but `set_max_width` is missing in this file. You MUST sandbox the viewer call within `ui.scope(|ui| { ui.set_max_width(ui.available_width()); ... })`.".to_string()));
         }
         visitor.violations
     }

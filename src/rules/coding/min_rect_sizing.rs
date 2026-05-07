@@ -7,6 +7,14 @@ pub struct MinRectSizingOps;
 
 impl MinRectSizingOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         if path
             .to_string_lossy()
             .replace('\\', "/")
@@ -61,14 +69,11 @@ impl<'ast, 'a> Visit<'ast> for MinRectSizingVisitor<'a> {
         if is_sizing_call && Self::is_min_rect_receiver(&node.receiver) {
             let (line, column) = LinterParserOps::span_location(node.method.span());
             if !self.is_suppressed(line) {
-                self.violations.push(Violation {
-                    file: self.file_path.clone(),
+                self.violations.push(Violation::err(self.file_path.clone(),
                     line,
                     column,
-                    message:
-                        "Do not derive parent-facing width/height from `ui.min_rect()`. This can leak intrinsic content size into any resizable parent layout and make it expand but not shrink. Use `available_width()`, `available_height()`, or `clip_rect()` instead."
-                            .to_string(),
-                });
+                    "Do not derive parent-facing width/height from `ui.min_rect()`. This can leak intrinsic content size into any resizable parent layout and make it expand but not shrink. Use `available_width()`, `available_height()`, or `clip_rect()` instead."
+                            .to_string()));
             }
         }
         syn::visit::visit_expr_method_call(self, node);
@@ -92,7 +97,11 @@ mod tests {
         )
         .expect("test source should parse");
 
-        let violations = MinRectSizingOps::lint(Path::new("/tmp/demo.rs"), &syntax);
+        let violations = MinRectSizingOps::lint_with_config(
+            Path::new("/tmp/demo.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert_eq!(violations.len(), 2);
     }
 }

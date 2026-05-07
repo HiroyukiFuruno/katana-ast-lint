@@ -23,6 +23,14 @@ pub struct IconButtonFillOps;
 
 impl IconButtonFillOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         /* WHY: icon/mod.rs is the canonical factory for Button::image — it is the
         only sanctioned call-site. All other callers must use Icon::button() or
         Icon::selected_button() instead of constructing Button::image directly. */
@@ -98,15 +106,13 @@ impl<'ast> Visit<'ast> for IconButtonFillVisitor {
             };
             if let Some(span) = span {
                 let (line, column) = LinterParserOps::span_location(span);
-                self.violations.push(Violation {
-                    file: self.file_path.clone(),
+                self.violations.push(Violation::err(self.file_path.clone(),
                     line,
                     column,
-                    message: "Icon-only `Button::image()` needs an explicit `.fill(icon_bg)` \
+                    "Icon-only `Button::image()` needs an explicit `.fill(icon_bg)` \
                               to ensure consistent background across all hover states. \
                               Use `fill(if ui.visuals().dark_mode { TRANSPARENT } else { from_gray(LIGHT_MODE_ICON_BG) })`."
-                        .to_string(),
-                });
+                        .to_string()));
             }
         }
 

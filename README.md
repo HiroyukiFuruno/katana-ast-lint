@@ -93,18 +93,18 @@ use std::path::PathBuf;
 
 let source_roots = vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src")];
 
-AstLinterOps::run(
+AstLinterOps::run_with_configured_rule(
     "file-length",
     "Split files that exceed the responsibility boundary.",
     &source_roots,
-    FileLengthOps::lint,
+    FileLengthOps::lint_with_config,
 );
 
-AstLinterOps::run(
+AstLinterOps::run_with_configured_rule(
     "function-length",
     "Extract helper methods when functions grow too large.",
     &source_roots,
-    FunctionLengthOps::lint,
+    FunctionLengthOps::lint_with_config,
 );
 ~~~
 

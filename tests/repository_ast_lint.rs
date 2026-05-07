@@ -31,31 +31,31 @@ fn repository_has_no_allow_dead_code() {
 
 #[test]
 fn repository_files_stay_within_limit() {
-    AstLinterOps::run(
+    AstLinterOps::run_with_configured_rule(
         "file-length",
         "Split files that exceed the 200-line responsibility boundary.",
         &source_roots(),
-        FileLengthOps::lint,
+        FileLengthOps::lint_with_config,
     );
 }
 
 #[test]
 fn repository_functions_stay_focused() {
-    AstLinterOps::run(
+    AstLinterOps::run_with_configured_rule(
         "function-length",
         "Extract helper methods when functions exceed the focused line limit.",
         &source_roots(),
-        FunctionLengthOps::lint,
+        FunctionLengthOps::lint_with_config,
     );
 }
 
 #[test]
 fn repository_nesting_stays_shallow() {
-    AstLinterOps::run(
+    AstLinterOps::run_with_configured_rule(
         "nesting-depth",
         "Use early returns or extract helpers instead of deep nesting.",
         &source_roots(),
-        NestingDepthOps::lint,
+        NestingDepthOps::lint_with_config,
     );
 }
 

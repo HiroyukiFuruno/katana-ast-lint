@@ -7,6 +7,14 @@ pub struct HorizontalLayoutOps;
 
 impl HorizontalLayoutOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         /* WHY: Allow ui.horizontal() inside AlignCenter — that is the canonical seam that
         wraps egui. All other callers must go through AlignCenter, so egui internals
         stay isolated behind one abstraction boundary. */
@@ -60,13 +68,13 @@ impl<'ast, 'a> Visit<'ast> for HorizontalLayoutVisitor<'a> {
                 return;
             }
 
-            self.violations.push(Violation {
-                file: self.file_path.clone(),
+            self.violations.push(Violation::err(
+                self.file_path.clone(),
                 line,
                 column,
-                message: "Use `AlignCenter` instead of `ui.horizontal()` for vertical centering."
+                "Use `AlignCenter` instead of `ui.horizontal()` for vertical centering."
                     .to_string(),
-            });
+            ));
         }
         syn::visit::visit_expr_method_call(self, node);
     }

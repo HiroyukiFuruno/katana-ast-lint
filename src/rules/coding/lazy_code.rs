@@ -8,6 +8,14 @@ pub struct LazyCodeOps;
 
 impl LazyCodeOps {
     pub fn lint(path: &Path, syntax: &syn::File) -> Vec<Violation> {
+        Self::lint_with_config(path, syntax, &crate::config::RuleConfig::default())
+    }
+
+    pub fn lint_with_config(
+        path: &Path,
+        syntax: &syn::File,
+        _config: &crate::config::RuleConfig,
+    ) -> Vec<Violation> {
         let mut visitor = LazyCodeVisitor::new(path.to_path_buf());
         visitor.visit_file(syntax);
         visitor.violations
@@ -37,12 +45,10 @@ impl LazyCodeVisitor {
 
         if name == "todo" || name == "unimplemented" || name == "dbg" {
             let (line, column) = LinterParserOps::span_location(mac.path.span());
-            self.violations.push(Violation {
-                file: self.file.clone(),
+            self.violations.push(Violation::err(self.file.clone(),
                 line,
                 column,
-                message: format!("Lazy code macro `{}!()` detected. Please implement the actual logic or remove debug prints.", name),
-            });
+                format!("Lazy code macro `{}!()` detected. Please implement the actual logic or remove debug prints.", name)));
         }
     }
 }
@@ -84,7 +90,11 @@ mod tests {
     fn detects_todo() {
         let code = r#"fn foo() { todo!() }"#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = LazyCodeOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = LazyCodeOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert_eq!(violations.len(), 1);
         assert!(violations[0].message.contains("todo"));
     }
@@ -93,7 +103,11 @@ mod tests {
     fn detects_dbg() {
         let code = r#"fn foo() { let x = 1; dbg!(x); }"#;
         let syntax = syn::parse_file(code).unwrap();
-        let violations = LazyCodeOps::lint(&PathBuf::from("fake.rs"), &syntax);
+        let violations = LazyCodeOps::lint_with_config(
+            &PathBuf::from("fake.rs"),
+            &syntax,
+            &crate::config::RuleConfig::default(),
+        );
         assert_eq!(violations.len(), 1);
         assert!(violations[0].message.contains("dbg"));
     }
