@@ -32,7 +32,7 @@
 - [x] 2.1 v0の違反形式を対象file、line、column、messageとして定義する
 - [x] 2.2 rule idと修正方針をtest runner / reporterで束ねる
 - [x] 2.3 終了コードはcargo testの失敗として扱う
-- [ ] 2.4 重要度とJSON出力は後続拡張として別OpenSpecで扱う
+- [x] 2.4 重要度とJSON出力は後続拡張として別OpenSpecで扱う
 
 ### Definition of Done
 

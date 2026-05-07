@@ -147,8 +147,10 @@ same `release/vX.Y.Z` shape as sibling KatanA ecosystem repositories when a
 release PR is needed.
 
 - Run `just VERSION=vX.Y.Z release-check` before publication.
+- Merge `release/vX.Y.Z` into `master` to create the signed tag, GitHub Release,
+  and crates.io publication automatically.
 - Run `just VERSION=vX.Y.Z release-github` to create or update only the GitHub
-  Release.
+  Release manually.
 - Run `just VERSION=vX.Y.Z release` when crates.io publication is intended.
 - GitHub Releases require a signed annotated `vX.Y.Z` tag that GitHub reports as
   Verified.
