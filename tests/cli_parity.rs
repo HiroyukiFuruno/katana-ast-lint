@@ -1,6 +1,10 @@
 use std::fs;
 use std::process::Command;
+use std::sync::Mutex;
 use tempfile::tempdir;
+
+/* WHY: process-global cwd is shared across parallel tests; serialize to prevent race */
+static CWD_MUTEX: Mutex<()> = Mutex::new(());
 
 fn get_kal_path() -> String {
     let mut path = std::env::current_exe().unwrap();
@@ -101,6 +105,8 @@ edition = "2024"
 
 #[test]
 fn cli_and_api_text_parity() {
+    let _guard = CWD_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
+
     let dir = tempdir().expect("failed to create temp dir");
     let src = dir.path().join("src");
     fs::create_dir_all(&src).unwrap();
@@ -143,6 +149,8 @@ edition = "2024"
 
 #[test]
 fn cli_and_api_json_parity() {
+    let _guard = CWD_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
+
     let dir = tempdir().expect("failed to create temp dir");
     let src = dir.path().join("src");
     fs::create_dir_all(&src).unwrap();
