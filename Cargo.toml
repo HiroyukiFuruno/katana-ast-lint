@@ -1,6 +1,6 @@
 [package]
 name = "katana-ast-lint"
-version = "0.4.0"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.95.0"
 license = "MIT"
@@ -25,10 +25,6 @@ include = [
 [lib]
 name = "katana_ast_lint"
 path = "src/lib.rs"
-
-[[bin]]
-name = "kal"
-path = "src/bin/kal.rs"
 
 [dependencies]
 chrono = "0.4.44"
