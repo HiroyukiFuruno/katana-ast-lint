@@ -115,6 +115,7 @@ jobs:
         run: scripts/release/verify-tag-verified.sh "${{ steps.version.outputs.version }}" "${GITHUB_REPOSITORY}"
 
       - name: Release check
+        if: github.event_name == 'workflow_dispatch'
         run: just VERSION="${{ steps.version.outputs.version }}" release-check
 
       - name: Upload package artifact

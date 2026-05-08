@@ -13,7 +13,7 @@ Confirm `Cargo.toml` metadata is still correct:
 - `readme = "README.md"`
 - `repository` points at the GitHub repository
 - `description`, `keywords`, and `categories` are still accurate
-- no `[[bin]]` target is present
+- the `kal` `[[bin]]` target still points at `src/bin/kal.rs`
 
 Run local validation:
 
@@ -32,7 +32,7 @@ Required sequence:
 - Run `just VERSION=vX.Y.Z release-check`.
 - Merge a release PR from `release/vX.Y.Z` into `master`; the workflow creates
   the signed annotated tag, GitHub Release, and crates.io publication
-  automatically.
+  automatically without repeating `release-check`.
 - For one-off publication, create a signed annotated tag with
   `just VERSION=vX.Y.Z release-tag`, then dispatch GitHub Release publication
   with `just VERSION=vX.Y.Z release-github`.
@@ -43,7 +43,7 @@ The workflow validates:
 - Cargo version equals release version.
 - release PR merge events come from a repository-owned `release/vX.Y.Z` branch.
 - release tag is an annotated signed tag that GitHub reports as Verified.
-- `just release-check`
+- `just release-check` in release PR preflight and manual dispatches
 - package artifact creation
 - GitHub Release creation or update
 - crates.io publication for merged `release/vX.Y.Z` PRs
