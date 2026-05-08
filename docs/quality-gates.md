@@ -39,7 +39,7 @@ kal check
 For CI stability, it is recommended to pin the version:
 
 ```bash
-cargo install katana-ast-lint --version 0.4.0 --locked
+cargo install katana-ast-lint --version 0.5.1 --locked
 ```
 
 Or run it as a repository-local tool:
@@ -59,8 +59,9 @@ The standard rule set includes:
 - source code must not contain lazy macros such as `todo!`, `unimplemented!`, or `dbg!`
 - `#[allow(dead_code)]` must not be used as a cleanup substitute
 - production source files must stay within the 200-line responsibility boundary
-- function bodies must stay focused
-- nesting depth must stay shallow
+- Rust test module files such as `*_tests.rs` may use the 300-line test boundary
+- function bodies must stay within 30 lines
+- nesting depth must stay within 3 levels
 - public types must stay separated from large implementation files
 - i18n and icon consistency rules
 
@@ -72,9 +73,12 @@ Customized behavior belongs in `kal.json` in the workspace root. See `src/config
 {
   "source_roots": ["src"],
   "rules": {
-    "file-length": {
-      "threshold": 300,
-      "severity": "warning"
+    "i18n": {
+      "enabled": true
+    },
+    "locales": {
+      "enabled": true,
+      "inputs": ["locales"]
     }
   }
 }
