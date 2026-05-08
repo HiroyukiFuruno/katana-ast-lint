@@ -5,11 +5,12 @@
 <h1 align="center">katana-ast-lint</h1>
 
 <p align="center">
-  A library-only Rust AST lint crate for shared KatanA ecosystem governance.
+  A shared Rust AST lint crate for KatanA ecosystem governance.
 </p>
 
 <p align="center">
   <strong><a href="#installation">Installation</a></strong> |
+  <strong><a href="#cli-usage">CLI Usage</a></strong> |
   <strong><a href="#library-api">Library API</a></strong> |
   <strong><a href="#downstream-integration">Downstream Integration</a></strong> |
   <strong><a href="docs/quality-gates.md">Quality Gates</a></strong> |
@@ -22,7 +23,6 @@
   <a href="https://github.com/HiroyukiFuruno/katana-ast-lint/releases/latest"><img src="https://img.shields.io/github/v/release/HiroyukiFuruno/katana-ast-lint" alt="Latest Release"></a>
   <a href="https://crates.io/crates/katana-ast-lint"><img src="https://img.shields.io/crates/v/katana-ast-lint.svg" alt="crates.io"></a>
   <a href="https://docs.rs/katana-ast-lint"><img src="https://img.shields.io/badge/docs.rs-katana--ast--lint-blue" alt="docs.rs"></a>
-  <img src="https://img.shields.io/badge/library-only-2563EB" alt="Library only">
 </p>
 
 ---
@@ -34,9 +34,9 @@ repositories. It was extracted from the KatanA workspace so separated crates can
 share the same structural rules, violation shape, and release-grade quality
 gate.
 
-The crate is intentionally library-only. It does not provide a CLI, binary
-target, editor extension, or user-facing command. Consumer repositories call the
-Rust API from their own tests, repository adapters, and CI jobs.
+KAL provides both a library API and a thin CLI (`kal`). Consumer repositories
+can choose the integration method that best fits their workflow—whether it's
+running as a Rust test or as a standalone command in CI.
 
 KAL is the shared rule boundary for the KatanA series, not a replacement for
 Rust linting foundations such as Clippy, Dylint, ast-grep, or Semgrep. Future
@@ -46,20 +46,26 @@ libraries when that makes the shared rules more robust.
 ## Features
 
 - **One-line Repository Runner** to execute all standard rules with a single call.
+- **Thin CLI (`kal`)** for easy integration into `just` or CI workflows.
 - **Shared Rust AST rules** migrated from the KatanA workspace.
 - **Structured violations** with file, line, column, and message fields.
 - **Adapter-friendly API** so repository-specific paths and fixtures stay out of
   common rules.
 - **Repository quality gates** for KME, preview, editor, export, widget, and
   KatanA integration work.
-- **Library-only boundary** with no `[[bin]]` target and no CLI contract.
 
 ## Installation
 
-Add the crate to the repository-specific lint crate or test harness:
+To use the library API, add the crate to your `dev-dependencies`:
 
 ~~~bash
 cargo add katana-ast-lint --dev
+~~~
+
+To use the CLI, install it via `cargo`:
+
+~~~bash
+cargo install katana-ast-lint
 ~~~
 
 Use a path dependency while developing sibling repositories locally:
@@ -68,6 +74,17 @@ Use a path dependency while developing sibling repositories locally:
 [dev-dependencies]
 katana-ast-lint = { path = "../katana-ast-lint" }
 ~~~
+
+## CLI Usage
+
+Run the standard rule set from the command line:
+
+~~~bash
+kal check
+~~~
+
+The CLI resolves the workspace root, loads `kal.json` if present, and executes
+all standard rules.
 
 ## Library API
 
@@ -164,7 +181,7 @@ sequence and [`docs/quality-gates.md`](docs/quality-gates.md) for required gates
 ## Non-Goals
 
 - Replacing `rustc`, rustfmt, or Clippy.
-- Providing a CLI or user-facing command.
+- Providing complex CLI options that bypass `kal.json`.
 - Embedding KME, preview, editor, export, widget, or KatanA application types.
 - Using broad exclusions as the default fix for rule failures.
 
