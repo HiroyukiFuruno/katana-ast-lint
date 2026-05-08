@@ -15,20 +15,6 @@ on:
       - "rustfmt.toml"
       - "kal.json"
       - "lefthook.yml"
-  pull_request:
-    branches: [master]
-    paths:
-      - "**.rs"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "Justfile"
-      - "just/**"
-      - "scripts/**"
-      - "tests/**"
-      - ".clippy.toml"
-      - "rustfmt.toml"
-      - "kal.json"
-      - "lefthook.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

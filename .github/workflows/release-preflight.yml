@@ -3,18 +3,6 @@ name: release-preflight
 on:
   pull_request:
     branches: [master]
-    paths:
-      - "**.rs"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "Justfile"
-      - "just/**"
-      - "scripts/**"
-      - "tests/**"
-      - ".clippy.toml"
-      - "rustfmt.toml"
-      - "kal.json"
-      - "lefthook.yml"
   workflow_dispatch:
 
 permissions:
