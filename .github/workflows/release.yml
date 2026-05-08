@@ -63,12 +63,10 @@ jobs:
         id: version
         shell: bash
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            release_branch="${{ github.event.pull_request.head.ref }}"
-            scripts/release/verify-version.sh "${release_branch#release/}"
-          else
-            scripts/release/verify-version.sh "${{ inputs.version }}"
-          fi
+          scripts/release/resolve-release-version.sh \
+            "${{ github.event_name }}" \
+            "${{ inputs.version }}" \
+            "${{ github.event.pull_request.head.ref }}"
 
       - name: Ensure signed release tag exists
         env:
@@ -115,6 +113,7 @@ jobs:
         run: scripts/release/verify-tag-verified.sh "${{ steps.version.outputs.version }}" "${GITHUB_REPOSITORY}"
 
       - name: Release check
+        if: github.event_name == 'workflow_dispatch'
         run: just VERSION="${{ steps.version.outputs.version }}" release-check
 
       - name: Upload package artifact
@@ -136,7 +135,7 @@ jobs:
               "${{ steps.package.outputs.package_path }}" \
               "${{ steps.package.outputs.checksum_path }}" \
               --verify-tag \
-              --title "katana-ast-lint ${tag}" \
+              --title "${tag}" \
               --generate-notes
           fi
 
