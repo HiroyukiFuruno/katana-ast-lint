@@ -297,7 +297,7 @@ dependencies = [
 
 [[package]]
 name = "katana-ast-lint"
-version = "0.5.2"
+version = "0.5.1"
 dependencies = [
  "chrono",
  "ignore",

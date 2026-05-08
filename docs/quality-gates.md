@@ -39,7 +39,7 @@ kal check
 For CI stability, it is recommended to pin the version:
 
 ```bash
-cargo install katana-ast-lint --version 0.5.2 --locked
+cargo install katana-ast-lint --version 0.5.1 --locked
 ```
 
 Or run it as a repository-local tool:
