@@ -5,3 +5,7 @@
 /.DS_Store
 /.serena
 /tmp
+
+**/openspec-*
+**/opsx-*
+**/opsx/
