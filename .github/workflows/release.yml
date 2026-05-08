@@ -73,8 +73,41 @@ jobs:
       - name: Ensure signed release tag exists
         env:
           RELEASE_GPG_KEY: ${{ secrets.RELEASE_GPG_KEY }}
-          RELEASE_GPG_PASSPHRASE: ${{ secrets.RELEASE_GPG_PASSPHRASE }}
-        run: scripts/release/ensure-signed-release-tag.sh "${{ steps.version.outputs.version }}"
+        run: |
+          set -euo pipefail
+          tag="${{ steps.version.outputs.version }}"
+
+          if ! git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            git fetch --force origin "refs/tags/${tag}:refs/tags/${tag}" || true
+          fi
+
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "Tag ${tag} already exists; skipping creation."
+            exit 0
+          fi
+
+          if [[ -z "${RELEASE_GPG_KEY}" ]]; then
+            echo "RELEASE_GPG_KEY is required to create release tags automatically." >&2
+            exit 1
+          fi
+
+          scripts/release/assert-tag-safe.sh "${tag}" origin
+
+          export GNUPGHOME="${RUNNER_TEMP}/gnupg"
+          mkdir -p "${GNUPGHOME}"
+          chmod 700 "${GNUPGHOME}"
+          printf '%s' "${RELEASE_GPG_KEY}" | gpg --batch --import -
+
+          key_id="$(gpg --list-secret-keys --keyid-format=LONG --with-colons | awk -F: '/^sec/ { print $5; exit }')"
+          if [[ -z "${key_id}" ]]; then
+            echo "No secret key available after importing RELEASE_GPG_KEY." >&2
+            exit 1
+          fi
+
+          git config user.name "Katana Release"
+          git config user.email "hfuruno0114@gmail.com"
+          git -c user.signingkey="${key_id}" tag -s "${tag}" -m "katana-ast-lint ${tag}"
+          git push origin "refs/tags/${tag}"
 
       - name: Verify release tag
         env:
