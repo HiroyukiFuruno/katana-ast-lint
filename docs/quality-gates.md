@@ -14,13 +14,32 @@
 
 ## AST Lint Invariants
 
-`just ast-lint` protects invariants that normal compiler checks do not cover. The recommended way to run these in a consumer repository is via the one-line runner API:
+`just ast-lint` protects invariants that normal compiler checks do not cover. Consumer repositories can choose between the one-line runner API or the `kal` CLI.
+
+### Option A: Library API (Recommended for Rust-heavy projects)
+
+Add a test in your integration test suite:
 
 ```rust
 #[test]
 fn repository_ast_lint() {
     katana_ast_lint::KatanaAstLint::from_workspace().assert_clean();
 }
+```
+
+### Option B: CLI Runner (Recommended for `just` or CI workflows)
+
+Install the CLI and run it from your command line or scripts:
+
+```bash
+cargo install katana-ast-lint
+kal check
+```
+
+Or run it as a repository-local tool:
+
+```bash
+cargo run --package katana-ast-lint --bin kal -- check
 ```
 
 The standard rule set includes:
