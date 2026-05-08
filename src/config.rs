@@ -29,6 +29,7 @@ pub struct RuleConfig {
 
 impl RuleConfig {
     pub fn default_for_rule(rule_name: &str) -> Self {
+        /* WHY: Default-disabled rules are those that are not standard for all repositories. */
         let enabled = !(rule_name == "i18n" || rule_name == "icon" || rule_name == "locales");
 
         Self {

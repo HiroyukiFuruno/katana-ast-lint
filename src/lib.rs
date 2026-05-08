@@ -28,7 +28,7 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 
 /* WHY: Domain entities for linter violation reporting and JSON AST traversal. */
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Violation {
     pub file: PathBuf,
@@ -114,13 +114,17 @@ pub struct KatanaAstLint {
 
 impl KatanaAstLint {
     pub fn from_workspace() -> Self {
+        Self::try_from_workspace().unwrap_or_else(|e| panic!("{}", e))
+    }
+
+    pub fn try_from_workspace() -> Result<Self, String> {
         let current_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let root = Self::find_workspace_root(&current_dir).unwrap_or_else(|| current_dir.clone());
-        let config = AstLinterOps::load_config(std::slice::from_ref(&root));
-        Self {
+        let config = AstLinterOps::try_load_config(std::slice::from_ref(&root))?;
+        Ok(Self {
             config,
             target_dirs: vec![root],
-        }
+        })
     }
 
     fn find_workspace_root(start: &Path) -> Option<PathBuf> {
@@ -150,28 +154,59 @@ impl KatanaAstLint {
     }
 
     pub fn violations(&self) -> Vec<Violation> {
-        self.lint_all().into_values().flatten().collect()
+        let mut results = self.lint_all();
+
+        let mut sorted_rule_ids: Vec<_> = results.keys().copied().collect();
+        sorted_rule_ids.sort();
+
+        let mut all = Vec::new();
+        for rule_id in sorted_rule_ids {
+            if let Some(violations) = results.remove(rule_id) {
+                all.extend(violations);
+            }
+        }
+        all
     }
 
     pub fn assert_clean(&self) {
+        self.try_assert_clean().unwrap_or_else(|e| panic!("{}", e))
+    }
+
+    pub fn try_assert_clean(&self) -> Result<(), String> {
         let results = self.lint_all();
         if results.is_empty() {
-            return;
+            return Ok(());
         }
 
-        for (rule_id, rule_violations) in results {
+        let mut errors = Vec::new();
+        let sorted_keys: Vec<_> = {
+            let mut keys: Vec<_> = results.keys().collect();
+            keys.sort();
+            keys
+        };
+
+        for rule_id in sorted_keys {
+            let rule_violations = results.get(rule_id).unwrap();
             let hint = RULE_CATALOG
                 .iter()
-                .find(|r| r.id == rule_id)
+                .find(|r| r.id == *rule_id)
                 .map(|r| r.hint)
                 .unwrap_or("Check the documentation for remediation guidance.");
 
-            utils::ViolationReporterOps::report(
+            if let Err(e) = utils::ViolationReporterOps::try_report(
                 rule_id,
                 hint,
-                &rule_violations,
+                rule_violations,
                 &self.config.reporter,
-            );
+            ) {
+                errors.push(e);
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors.join("\n"))
         }
     }
 
@@ -272,17 +307,19 @@ impl AstLinterOps {
     }
 
     pub(crate) fn load_config(target_dirs: &[PathBuf]) -> config::KalConfig {
+        Self::try_load_config(target_dirs).unwrap_or_else(|e| panic!("{}", e))
+    }
+
+    pub(crate) fn try_load_config(target_dirs: &[PathBuf]) -> Result<config::KalConfig, String> {
         match Self::find_config_file(target_dirs) {
-            Some(config_path) => {
-                config::KalConfig::load_from_path(&config_path).unwrap_or_else(|e| {
-                    panic!(
-                        "Invalid KAL configuration at {}: {}",
-                        config_path.display(),
-                        e
-                    )
-                })
-            }
-            None => config::KalConfig::load_default(),
+            Some(config_path) => config::KalConfig::load_from_path(&config_path).map_err(|e| {
+                format!(
+                    "Invalid KAL configuration at {}: {}",
+                    config_path.display(),
+                    e
+                )
+            }),
+            None => Ok(config::KalConfig::load_default()),
         }
     }
 
