@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.4.0
+
+- Introduce `kal` CLI binary for standalone linting.
+- Add `kal check` command to execute the standard rule catalog.
+- Support stable exit codes (0: clean, 1: violations, 2: errors).
+- Refactor library internals to support graceful error handling via `try_*` APIs.
+- Share the same rule catalog, `kal.json` interpretation, and reporter backend between API and CLI.
+
 ## v0.3.0
 
 - Introduce `KatanaAstLint` one-line repository runner.

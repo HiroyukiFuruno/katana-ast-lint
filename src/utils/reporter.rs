@@ -35,8 +35,18 @@ impl ViolationReporterOps {
         violations: &[Violation],
         reporter_config: &ReporterConfig,
     ) {
+        Self::try_report(rule_name, hint, violations, reporter_config)
+            .unwrap_or_else(|e| panic!("{}", e));
+    }
+
+    pub fn try_report(
+        rule_name: &str,
+        hint: &str,
+        violations: &[Violation],
+        reporter_config: &ReporterConfig,
+    ) -> Result<(), String> {
         if violations.is_empty() {
-            return;
+            return Ok(());
         }
 
         match reporter_config.mode.unwrap_or_default() {
@@ -46,20 +56,21 @@ impl ViolationReporterOps {
                 msg.push_str(&format!("Fix: {}\n", hint));
                 msg.push_str("Details: See docs/quality-gates.md\n");
 
+                println!("{}", msg);
+
                 if violations.iter().any(|v| v.severity == Severity::Error) {
-                    panic!("{}", msg);
-                } else {
-                    println!("{}", msg);
+                    return Err(msg);
                 }
             }
             ReporterMode::Json => {
                 let json = serde_json::to_string_pretty(violations).unwrap_or_default();
                 println!("{}", json);
                 if violations.iter().any(|v| v.severity == Severity::Error) {
-                    panic!("AST Lint failed with errors (JSON output above)");
+                    return Err("AST Lint failed with errors (JSON output above)".to_string());
                 }
             }
         }
+        Ok(())
     }
 
     pub fn locale_violation(file: &Path, message: impl Into<String>) -> Violation {
