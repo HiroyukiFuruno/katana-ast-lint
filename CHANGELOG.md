@@ -1,12 +1,5 @@
 # Changelog
 
-## v0.5.1
-
-- Align the standard structure rule thresholds with the existing KatanA AST lint baseline.
-- Set the catalog defaults for `function-length` and `nesting-depth` to 30 lines and 3 levels.
-- Preserve the built-in `file-length` split of 200 lines for source files and 300 lines for Rust test module files.
-- Skip redundant post-merge checks after release PRs have already passed preflight.
-
 ## v0.5.0
 
 - Introduce `KalRunError` enum to distinguish between violations, configuration errors, and system errors.

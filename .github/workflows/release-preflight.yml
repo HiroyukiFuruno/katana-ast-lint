@@ -40,7 +40,7 @@ jobs:
         id: version
         if: startsWith(github.head_ref, 'release/v')
         shell: bash
-        run: scripts/release/resolve-release-version.sh "pull_request" "" "${{ github.head_ref }}"
+        run: scripts/release/verify-version.sh "${GITHUB_HEAD_REF#release/}"
 
       - name: Release check
         if: startsWith(github.head_ref, 'release/v')

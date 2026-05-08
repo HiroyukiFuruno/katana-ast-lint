@@ -29,14 +29,6 @@ env:
 
 jobs:
   test:
-    if: >
-      !(
-        github.event.head_commit.committer.username == 'web-flow' &&
-        (
-          startsWith(github.event.head_commit.message, 'Merge pull request ') ||
-          contains(github.event.head_commit.message, '(#')
-        )
-      )
     name: Test and Build
     strategy:
       matrix:

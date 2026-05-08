@@ -184,7 +184,7 @@ pub static RULE_CATALOG: Lazy<Vec<RuleDefinition>> = Lazy::new(|| {
             default_severity: Severity::Error,
             hint: "Split files that exceed the responsibility boundary.",
             implementation: RuleImplementation::RustFile(FileLengthOps::lint_with_config),
-            default_threshold: None,
+            default_threshold: Some(200),
         },
         RuleDefinition {
             id: "function-length",
@@ -192,7 +192,7 @@ pub static RULE_CATALOG: Lazy<Vec<RuleDefinition>> = Lazy::new(|| {
             default_severity: Severity::Error,
             hint: "Extract helper methods when functions grow too large.",
             implementation: RuleImplementation::RustFile(FunctionLengthOps::lint_with_config),
-            default_threshold: Some(30),
+            default_threshold: Some(50),
         },
         RuleDefinition {
             id: "nesting-depth",
@@ -200,7 +200,7 @@ pub static RULE_CATALOG: Lazy<Vec<RuleDefinition>> = Lazy::new(|| {
             default_severity: Severity::Error,
             hint: "Use early returns or extract helpers instead of deep nesting.",
             implementation: RuleImplementation::RustFile(NestingDepthOps::lint_with_config),
-            default_threshold: Some(3),
+            default_threshold: Some(4),
         },
         RuleDefinition {
             id: "pub-free-fn",

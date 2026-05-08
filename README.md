@@ -51,8 +51,6 @@ libraries when that makes the shared rules more robust.
 - **Structured violations** with file, line, column, and message fields.
 - **Adapter-friendly API** so repository-specific paths and fixtures stay out of
   common rules.
-- **KatanA-compatible defaults** for file length, function length, and nesting
-  depth.
 - **Repository quality gates** for KME, preview, editor, export, widget, and
   KatanA integration work.
 
@@ -136,19 +134,13 @@ just/quality.just
 ~~~
 
 The `kal.json` file in the repository root allows you to configure source roots,
-rule severities, optional rule enablement, and repository-specific inputs. Keep
-standard thresholds out of downstream config unless the repository intentionally
-deviates from KAL defaults.
+rule severities, and thresholds:
 
 ~~~json
 {
   "source_roots": ["src"],
   "rules": {
-    "i18n": { "enabled": true },
-    "locales": {
-      "enabled": true,
-      "inputs": ["locales"]
-    }
+    "file-length": { "threshold": 300 }
   }
 }
 ~~~
