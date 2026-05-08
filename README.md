@@ -83,6 +83,13 @@ Run the standard rule set from the command line:
 kal check
 ~~~
 
+Force a specific output mode for a single run:
+
+~~~bash
+kal check --json
+kal check --text
+~~~
+
 The CLI resolves the workspace root, loads `kal.json` if present, and executes
 all standard rules.
 

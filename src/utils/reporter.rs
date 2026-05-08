@@ -44,7 +44,7 @@ impl ViolationReporterOps {
         hint: &str,
         violations: &[Violation],
         reporter_config: &ReporterConfig,
-    ) -> Result<(), String> {
+    ) -> Result<(), crate::KalRunError> {
         if violations.is_empty() {
             return Ok(());
         }
@@ -59,14 +59,20 @@ impl ViolationReporterOps {
                 println!("{}", msg);
 
                 if violations.iter().any(|v| v.severity == Severity::Error) {
-                    return Err(msg);
+                    return Err(crate::KalRunError::Violations(msg));
                 }
             }
             ReporterMode::Json => {
-                let json = serde_json::to_string_pretty(violations).unwrap_or_default();
-                println!("{}", json);
+                let json = serde_json::to_string_pretty(violations).map_err(|e| {
+                    crate::KalRunError::System(format!(
+                        "Failed to serialize AST lint violations as JSON: {e}"
+                    ))
+                })?;
+                println!("{json}");
                 if violations.iter().any(|v| v.severity == Severity::Error) {
-                    return Err("AST Lint failed with errors (JSON output above)".to_string());
+                    return Err(crate::KalRunError::Violations(
+                        "AST Lint failed with errors (JSON output above)".to_string(),
+                    ));
                 }
             }
         }

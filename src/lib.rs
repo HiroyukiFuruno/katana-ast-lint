@@ -28,6 +28,27 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 
 /* WHY: Domain entities for linter violation reporting and JSON AST traversal. */
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum KalRunError {
+    /// rule violations were detected and reported
+    Violations(String),
+    /// kal.json or workspace configuration is invalid / unreadable
+    Configuration(String),
+    /// non-violation runtime failure (IO, internal invariants)
+    System(String),
+}
+
+impl std::fmt::Display for KalRunError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Violations(msg) | Self::Configuration(msg) | Self::System(msg) => {
+                write!(f, "{msg}")
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Violation {
@@ -117,7 +138,7 @@ impl KatanaAstLint {
         Self::try_from_workspace().unwrap_or_else(|e| panic!("{}", e))
     }
 
-    pub fn try_from_workspace() -> Result<Self, String> {
+    pub fn try_from_workspace() -> Result<Self, KalRunError> {
         let current_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let root = Self::find_workspace_root(&current_dir).unwrap_or_else(|| current_dir.clone());
         let config = AstLinterOps::try_load_config(std::slice::from_ref(&root))?;
@@ -153,6 +174,11 @@ impl KatanaAstLint {
         }
     }
 
+    pub fn with_reporter_mode(mut self, mode: config::ReporterMode) -> Self {
+        self.config.reporter.mode = Some(mode);
+        self
+    }
+
     pub fn violations(&self) -> Vec<Violation> {
         let mut results = self.lint_all();
 
@@ -172,7 +198,7 @@ impl KatanaAstLint {
         self.try_assert_clean().unwrap_or_else(|e| panic!("{}", e))
     }
 
-    pub fn try_assert_clean(&self) -> Result<(), String> {
+    pub fn try_assert_clean(&self) -> Result<(), KalRunError> {
         let results = self.lint_all();
         if results.is_empty() {
             return Ok(());
@@ -206,7 +232,34 @@ impl KatanaAstLint {
         if errors.is_empty() {
             Ok(())
         } else {
-            Err(errors.join("\n"))
+            let mut msgs = Vec::new();
+            let mut is_violation = false;
+            let mut is_config = false;
+
+            for e in errors {
+                match e {
+                    KalRunError::Violations(m) => {
+                        msgs.push(m);
+                        is_violation = true;
+                    }
+                    KalRunError::Configuration(m) => {
+                        msgs.push(m);
+                        is_config = true;
+                    }
+                    KalRunError::System(m) => {
+                        msgs.push(m);
+                    }
+                }
+            }
+
+            let combined = msgs.join("\n");
+            if is_config {
+                Err(KalRunError::Configuration(combined))
+            } else if is_violation {
+                Err(KalRunError::Violations(combined))
+            } else {
+                Err(KalRunError::System(combined))
+            }
         }
     }
 
@@ -310,14 +363,16 @@ impl AstLinterOps {
         Self::try_load_config(target_dirs).unwrap_or_else(|e| panic!("{}", e))
     }
 
-    pub(crate) fn try_load_config(target_dirs: &[PathBuf]) -> Result<config::KalConfig, String> {
+    pub(crate) fn try_load_config(
+        target_dirs: &[PathBuf],
+    ) -> Result<config::KalConfig, KalRunError> {
         match Self::find_config_file(target_dirs) {
             Some(config_path) => config::KalConfig::load_from_path(&config_path).map_err(|e| {
-                format!(
+                KalRunError::Configuration(format!(
                     "Invalid KAL configuration at {}: {}",
                     config_path.display(),
                     e
-                )
+                ))
             }),
             None => Ok(config::KalConfig::load_default()),
         }
