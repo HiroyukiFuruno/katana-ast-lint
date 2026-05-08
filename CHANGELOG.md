@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.5.0
+
+- Introduce `KalRunError` enum to distinguish between violations, configuration errors, and system errors.
+- Update `try_from_workspace` and `try_assert_clean` to return `Result<_, KalRunError>` (**breaking change**).
+- Add `--json` and `--text` flags to `kal check` for temporary reporter mode overrides.
+- Refine CLI exit code mapping: `Violations` → exit 1, `Configuration`/`System` → exit 2.
+
 ## v0.4.0
 
 - Introduce `kal` CLI binary for standalone linting.

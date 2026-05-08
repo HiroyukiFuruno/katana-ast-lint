@@ -48,6 +48,12 @@ Or run it as a repository-local tool:
 cargo run --package katana-ast-lint --bin kal -- check
 ```
 
+Override the output mode for CI jobs that need machine-readable results:
+
+```bash
+kal check --json
+```
+
 The standard rule set includes:
 
 - source code must not contain lazy macros such as `todo!`, `unimplemented!`, or `dbg!`
