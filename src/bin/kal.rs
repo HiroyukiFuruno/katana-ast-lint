@@ -41,8 +41,6 @@ fn run_check() {
     match KatanaAstLint::try_from_workspace() {
         Ok(linter) => {
             if let Err(_e) = linter.try_assert_clean() {
-                /* WHY: Exit with 1 if lint violations (Error severity) are found.
-                Violation details are already printed to stdout by the reporter. */
                 process::exit(1);
             }
         }

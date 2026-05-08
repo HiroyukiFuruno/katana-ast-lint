@@ -13,30 +13,80 @@ fn get_kal_path() -> String {
     path.join("kal").to_str().unwrap().to_string()
 }
 
-#[test]
-fn cli_check_clean_project_exits_0() {
-    let dir = tempdir().expect("failed to create temp dir");
-    let src = dir.path().join("src");
+fn write_minimal_workspace(dir: &std::path::Path, name: &str, lib_rs: &str) {
+    let src = dir.join("src");
     fs::create_dir_all(&src).unwrap();
-    fs::write(src.join("lib.rs"), "fn main() {}").unwrap();
+    fs::write(src.join("lib.rs"), lib_rs).unwrap();
     fs::write(
-        dir.path().join("Cargo.toml"),
-        r#"
+        dir.join("Cargo.toml"),
+        format!(
+            r#"
 [package]
-name = "test-project"
+name = "{name}"
 version = "0.1.0"
 edition = "2024"
 
 [workspace]
-"#,
+"#
+        ),
     )
     .unwrap();
+}
 
-    let output = Command::new(get_kal_path())
-        .args(["check"])
-        .current_dir(dir.path())
+fn run_cli(dir: &std::path::Path, args: &[&str]) -> std::process::Output {
+    Command::new(get_kal_path())
+        .args(args)
+        .current_dir(dir)
         .output()
-        .expect("failed to execute process");
+        .expect("failed to execute process")
+}
+
+fn with_cwd_locked<T>(dir: &std::path::Path, f: impl FnOnce() -> T) -> T {
+    let _guard = CWD_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
+
+    let original_dir = std::env::current_dir().unwrap();
+    std::env::set_current_dir(dir).unwrap();
+
+    let value = f();
+
+    std::env::set_current_dir(original_dir).unwrap();
+    value
+}
+
+fn api_violations(dir: &std::path::Path) -> Vec<katana_ast_lint::Violation> {
+    with_cwd_locked(dir, || {
+        katana_ast_lint::KatanaAstLint::try_from_workspace()
+            .expect("API runner should resolve workspace")
+            .violations()
+    })
+}
+
+fn hint_for_rule(rule_id: &str) -> &'static str {
+    katana_ast_lint::rules::RULE_CATALOG
+        .iter()
+        .find(|r| r.id == rule_id)
+        .map(|r| r.hint)
+        .unwrap_or("Check the documentation for remediation guidance.")
+}
+
+fn expected_text_output(rule_id: &str, violations: &[katana_ast_lint::Violation]) -> String {
+    let hint = hint_for_rule(rule_id);
+
+    let mut msg =
+        katana_ast_lint::utils::ViolationReporterOps::format_violations(rule_id, violations);
+    msg.push('\n');
+    msg.push_str(&format!("Fix: {hint}\n"));
+    msg.push_str("Details: See docs/quality-gates.md\n");
+
+    // Mirror the reporter's `println!`, which appends a trailing newline.
+    format!("{msg}\n")
+}
+
+#[test]
+fn cli_check_clean_project_exits_0() {
+    let dir = tempdir().expect("failed to create temp dir");
+    write_minimal_workspace(dir.path(), "test-project", "fn main() {}");
+    let output = run_cli(dir.path(), &["check"]);
 
     if output.status.code() != Some(0) {
         eprintln!("test-project path: {}", dir.path().display());
@@ -49,27 +99,12 @@ edition = "2024"
 #[test]
 fn cli_check_violation_exits_1() {
     let dir = tempdir().expect("failed to create temp dir");
-    let src = dir.path().join("src");
-    fs::create_dir_all(&src).unwrap();
-    fs::write(src.join("lib.rs"), "fn main() { todo!() }").unwrap();
-    fs::write(
-        dir.path().join("Cargo.toml"),
-        r#"
-[package]
-name = "test-project-violation"
-version = "0.1.0"
-edition = "2024"
-
-[workspace]
-"#,
-    )
-    .unwrap();
-
-    let output = Command::new(get_kal_path())
-        .args(["check"])
-        .current_dir(dir.path())
-        .output()
-        .expect("failed to execute process");
+    write_minimal_workspace(
+        dir.path(),
+        "test-project-violation",
+        "fn main() { todo!() }",
+    );
+    let output = run_cli(dir.path(), &["check"]);
 
     assert_eq!(output.status.code(), Some(1));
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -92,12 +127,7 @@ edition = "2024"
 "#,
     )
     .unwrap();
-
-    let output = Command::new(get_kal_path())
-        .args(["check"])
-        .current_dir(dir.path())
-        .output()
-        .expect("failed to execute process");
+    let output = run_cli(dir.path(), &["check"]);
 
     assert_eq!(output.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&output.stderr).contains("Invalid KAL configuration"));
@@ -105,96 +135,53 @@ edition = "2024"
 
 #[test]
 fn cli_and_api_text_parity() {
-    let _guard = CWD_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
-
     let dir = tempdir().expect("failed to create temp dir");
-    let src = dir.path().join("src");
-    fs::create_dir_all(&src).unwrap();
-    fs::write(src.join("lib.rs"), "fn main() { todo!() }").unwrap();
-    fs::write(
-        dir.path().join("Cargo.toml"),
-        r#"
-[package]
-name = "test-project-parity"
-version = "0.1.0"
-edition = "2024"
+    write_minimal_workspace(dir.path(), "test-project-parity", "fn main() { todo!() }");
 
-[workspace]
-"#,
-    )
-    .unwrap();
+    let cli_output = run_cli(dir.path(), &["check"]);
+    assert_eq!(cli_output.status.code(), Some(1));
+    let cli_stdout = String::from_utf8(cli_output.stdout).expect("CLI stdout must be UTF-8");
 
-    // Run via CLI
-    let cli_output = Command::new(get_kal_path())
-        .args(["check"])
-        .current_dir(dir.path())
-        .output()
-        .expect("failed to execute process");
-    let cli_stdout = String::from_utf8_lossy(&cli_output.stdout);
+    let violations = api_violations(dir.path());
+    assert!(
+        !violations.is_empty(),
+        "API runner should detect violations"
+    );
 
-    // Run via API
-    let original_dir = std::env::current_dir().unwrap();
-    std::env::set_current_dir(dir.path()).unwrap();
-
-    let linter = katana_ast_lint::KatanaAstLint::from_workspace();
-    let violations = linter.violations();
-
-    std::env::set_current_dir(original_dir).unwrap();
-
-    // Check that CLI contains same key information
-    assert!(cli_stdout.contains("lazy-code"));
-    assert!(cli_stdout.contains("todo!()"));
-    assert!(violations.iter().any(|v| v.message.contains("todo!()")));
+    // WHEN linting the same workspace through the API runner and `kal check`
+    // THEN both executions produce equivalent reporter output.
+    assert_eq!(cli_stdout, expected_text_output("lazy-code", &violations));
 }
 
 #[test]
 fn cli_and_api_json_parity() {
-    let _guard = CWD_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
-
     let dir = tempdir().expect("failed to create temp dir");
-    let src = dir.path().join("src");
-    fs::create_dir_all(&src).unwrap();
-    fs::write(src.join("lib.rs"), "fn main() { todo!() }").unwrap();
+    write_minimal_workspace(
+        dir.path(),
+        "test-project-json-parity",
+        "fn main() { todo!() }",
+    );
     fs::write(
         dir.path().join("kal.json"),
         r#"{"reporter": {"mode": "json"}}"#,
     )
     .unwrap();
-    fs::write(
-        dir.path().join("Cargo.toml"),
-        r#"
-[package]
-name = "test-project-json-parity"
-version = "0.1.0"
-edition = "2024"
 
-[workspace]
-"#,
-    )
-    .unwrap();
+    let cli_output = run_cli(dir.path(), &["check"]);
+    assert_eq!(cli_output.status.code(), Some(1));
+    let cli_stdout = String::from_utf8(cli_output.stdout).expect("CLI stdout must be UTF-8");
 
-    // Run via CLI
-    let cli_output = Command::new(get_kal_path())
-        .args(["check"])
-        .current_dir(dir.path())
-        .output()
-        .expect("failed to execute process");
-    let cli_stdout = String::from_utf8_lossy(&cli_output.stdout);
-
-    let cli_violations: Vec<katana_ast_lint::Violation> =
-        serde_json::from_str(&cli_stdout).expect("CLI output should be valid JSON");
-
-    // Run via API
-    let original_dir = std::env::current_dir().unwrap();
-    std::env::set_current_dir(dir.path()).unwrap();
-    let linter = katana_ast_lint::KatanaAstLint::from_workspace();
-    let api_violations = linter.violations();
-    std::env::set_current_dir(original_dir).unwrap();
-
-    assert_eq!(cli_violations.len(), api_violations.len());
-    assert_eq!(cli_violations[0].message, api_violations[0].message);
-    assert_eq!(
-        cli_violations[0].file.file_name(),
-        api_violations[0].file.file_name()
+    let violations = api_violations(dir.path());
+    assert!(
+        !violations.is_empty(),
+        "API runner should detect violations"
     );
+
+    // WHEN linting the same workspace through the API runner and `kal check`
+    // THEN both executions produce equivalent reporter output.
+    let expected = format!(
+        "{}\n",
+        serde_json::to_string_pretty(&violations).expect("valid JSON")
+    );
+    assert_eq!(cli_stdout, expected);
 }

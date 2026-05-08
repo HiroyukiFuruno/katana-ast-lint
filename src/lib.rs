@@ -28,7 +28,7 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 
 /* WHY: Domain entities for linter violation reporting and JSON AST traversal. */
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Violation {
     pub file: PathBuf,
@@ -154,7 +154,18 @@ impl KatanaAstLint {
     }
 
     pub fn violations(&self) -> Vec<Violation> {
-        self.lint_all().into_values().flatten().collect()
+        let mut results = self.lint_all();
+
+        let mut sorted_rule_ids: Vec<_> = results.keys().copied().collect();
+        sorted_rule_ids.sort();
+
+        let mut all = Vec::new();
+        for rule_id in sorted_rule_ids {
+            if let Some(violations) = results.remove(rule_id) {
+                all.extend(violations);
+            }
+        }
+        all
     }
 
     pub fn assert_clean(&self) {
