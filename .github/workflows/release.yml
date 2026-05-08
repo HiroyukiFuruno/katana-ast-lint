@@ -4,18 +4,6 @@ on:
   pull_request:
     types: [closed]
     branches: [master]
-    paths:
-      - "**.rs"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "Justfile"
-      - "just/**"
-      - "scripts/**"
-      - "tests/**"
-      - ".clippy.toml"
-      - "rustfmt.toml"
-      - "kal.json"
-      - "lefthook.yml"
   workflow_dispatch:
     inputs:
       version:
@@ -50,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref }}
           fetch-depth: 0
@@ -73,13 +61,14 @@ jobs:
 
       - name: Resolve version
         id: version
-        env:
-          RELEASE_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        shell: bash
         run: |
-          scripts/release/resolve-release-version.sh \
-            "${{ github.event_name }}" \
-            "${{ inputs.version }}" \
-            "${RELEASE_HEAD_REF}"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            release_branch="${{ github.event.pull_request.head.ref }}"
+            scripts/release/verify-version.sh "${release_branch#release/}"
+          else
+            scripts/release/verify-version.sh "${{ inputs.version }}"
+          fi
 
       - name: Ensure signed release tag exists
         env:
@@ -105,7 +94,10 @@ jobs:
         run: |
           tag="${{ steps.version.outputs.version }}"
           if gh release view "${tag}" >/dev/null 2>&1; then
-            gh release upload "${tag}" "${{ steps.package.outputs.package_path }}" "${{ steps.package.outputs.checksum_path }}" --clobber
+            gh release upload "${tag}" \
+              "${{ steps.package.outputs.package_path }}" \
+              "${{ steps.package.outputs.checksum_path }}" \
+              --clobber
           else
             gh release create "${tag}" \
               "${{ steps.package.outputs.package_path }}" \
@@ -133,4 +125,5 @@ jobs:
             echo "CARGO_REGISTRY_TOKEN secret is required to publish to crates.io." >&2
             exit 1
           fi
+          scripts/release/assert-crate-not-published.sh "${{ steps.version.outputs.version_bare }}"
           cargo publish --locked --token "${CARGO_REGISTRY_TOKEN}"
