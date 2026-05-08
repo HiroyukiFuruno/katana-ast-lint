@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.2
+
+- Reissue the v0.5.1 changes under a fresh crates.io version after the premature release.
+- Run the full CI matrix on pull requests before merge.
+- Keep optional Rust cache failures from stopping Windows CI before the actual checks run.
+
 ## v0.5.1
 
 - Align the standard structure rule thresholds with the existing KatanA AST lint baseline.

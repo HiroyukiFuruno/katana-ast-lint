@@ -1,12 +1,15 @@
 name: CI
 
 on:
+  pull_request:
+    branches: [master]
   push:
     branches: [master]
     paths:
       - "**.rs"
       - "Cargo.toml"
       - "Cargo.lock"
+      - ".github/workflows/**"
       - "Justfile"
       - "just/**"
       - "scripts/**"
@@ -54,6 +57,7 @@ jobs:
 
       - name: Cache Rust build outputs
         uses: Swatinem/rust-cache@v2.9.1
+        continue-on-error: true
         with:
           shared-key: ci-${{ matrix.os }}-stable-default
 
