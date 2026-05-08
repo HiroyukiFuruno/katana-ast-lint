@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
@@ -50,12 +50,10 @@ jobs:
 
       - name: Resolve version
         id: version
+        if: startsWith(github.head_ref, 'release/v')
         shell: bash
-        run: |
-          scripts/release/resolve-release-version.sh \
-            "${{ github.event_name }}" \
-            "" \
-            "${GITHUB_HEAD_REF}"
+        run: scripts/release/verify-version.sh "${GITHUB_HEAD_REF#release/}"
 
       - name: Release check
+        if: startsWith(github.head_ref, 'release/v')
         run: just VERSION="${{ steps.version.outputs.version }}" release-check
