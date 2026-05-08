@@ -147,7 +147,11 @@ fn cli_and_api_json_parity() {
     let src = dir.path().join("src");
     fs::create_dir_all(&src).unwrap();
     fs::write(src.join("lib.rs"), "fn main() { todo!() }").unwrap();
-    fs::write(dir.path().join("kal.json"), r#"{"reporter": {"mode": "json"}}"#).unwrap();
+    fs::write(
+        dir.path().join("kal.json"),
+        r#"{"reporter": {"mode": "json"}}"#,
+    )
+    .unwrap();
     fs::write(
         dir.path().join("Cargo.toml"),
         r#"
@@ -169,7 +173,8 @@ edition = "2024"
         .expect("failed to execute process");
     let cli_stdout = String::from_utf8_lossy(&cli_output.stdout);
 
-    let cli_violations: Vec<katana_ast_lint::Violation> = serde_json::from_str(&cli_stdout).expect("CLI output should be valid JSON");
+    let cli_violations: Vec<katana_ast_lint::Violation> =
+        serde_json::from_str(&cli_stdout).expect("CLI output should be valid JSON");
 
     // Run via API
     let original_dir = std::env::current_dir().unwrap();
@@ -180,5 +185,8 @@ edition = "2024"
 
     assert_eq!(cli_violations.len(), api_violations.len());
     assert_eq!(cli_violations[0].message, api_violations[0].message);
-    assert_eq!(cli_violations[0].file.file_name(), api_violations[0].file.file_name());
+    assert_eq!(
+        cli_violations[0].file.file_name(),
+        api_violations[0].file.file_name()
+    );
 }

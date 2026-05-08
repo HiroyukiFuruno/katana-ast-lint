@@ -42,7 +42,7 @@ fn run_check() {
         Ok(linter) => {
             if let Err(_e) = linter.try_assert_clean() {
                 /* WHY: Exit with 1 if lint violations (Error severity) are found.
-                   Violation details are already printed to stdout by the reporter. */
+                Violation details are already printed to stdout by the reporter. */
                 process::exit(1);
             }
         }
