@@ -36,6 +36,12 @@ cargo install katana-ast-lint
 kal check
 ```
 
+For CI stability, it is recommended to pin the version:
+
+```bash
+cargo install katana-ast-lint --version 0.4.0 --locked
+```
+
 Or run it as a repository-local tool:
 
 ```bash
