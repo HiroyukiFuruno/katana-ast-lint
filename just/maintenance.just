@@ -1,3 +1,11 @@
+# Sweep old build artifacts locally (older than 7 days)
+sweep:
+    @{{CARGO}} sweep --time 7 || true
+
+# Remove build artifacts
+clean: sweep
+    {{CARGO}} clean
+
 # Safely update Cargo.lock within the current Cargo.toml ranges
 update-safe:
     {{CARGO}} update
