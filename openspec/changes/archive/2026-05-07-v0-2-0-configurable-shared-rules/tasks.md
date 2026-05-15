@@ -5,7 +5,7 @@
 ### Definition of Ready
 
 - [x] v0.1.0の公開APIとconsumer runnerの使い方が確認できている
-- [x] KatanA、KME、kdp、kle、kcf、kuwで必要なrule差分が棚卸しされている
+- [x] KatanA、KMM、kdp、kle、kcf、kuwで必要なrule差分が棚卸しされている
 
 ### Tasks
 
@@ -79,4 +79,4 @@
 
 - [x] 5.1 `scripts/openspec validate "v0-2-0-configurable-shared-rules" --strict` を実行する
 - [x] 5.2 `just check` を実行する
-- [x] 5.3 KatanA、KME、kdp、kle、kcf、kuwのうち、実checkoutがあるrepositoryで取り込み方針を確認する
+- [x] 5.3 KatanA、KMM、kdp、kle、kcf、kuwのうち、実checkoutがあるrepositoryで取り込み方針を確認する

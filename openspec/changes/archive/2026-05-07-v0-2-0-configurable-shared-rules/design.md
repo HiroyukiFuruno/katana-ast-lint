@@ -17,7 +17,7 @@ v0.2.0では、repositoryごとの違いをコードではなく設定で表現�
 - CLIを提供すること。
 - Clippy、Dylint、ast-grep、Semgrepを無条件に置き換えること。
 - repository固有の例外を無制限に設定で黙らせること。
-- KME、preview、editor、export、widgetの内部型をKALへ持ち込むこと。
+- KMM、preview、editor、export、widgetの内部型をKALへ持ち込むこと。
 
 ## Decisions
 

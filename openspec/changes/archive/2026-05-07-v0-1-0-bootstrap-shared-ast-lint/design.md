@@ -6,7 +6,7 @@ KatanA本体には、通常の静的検査だけでは拾えない構造違反�
 
 - 共通rule、repository adapter、reporterを分ける。
 - 各repositoryが同じ違反形式を使えるようにする。
-- KME、kdp、kle、kcf、kuwの品質ゲートとして使える入口を持つ。
+- KMM、kdp、kle、kcf、kuwの品質ゲートとして使える入口を持つ。
 - ルール違反を除外設定で隠さない。
 - CLIなしのlibrary-only crateとして公開できる。
 - kml相当の品質ゲート、lefthook、CI/CD、release骨格を持つ。
@@ -14,7 +14,7 @@ KatanA本体には、通常の静的検査だけでは拾えない構造違反�
 ## Non-Goals
 
 - Rust compiler、clippy、formatの代替を作ること。
-- KME文書モデルやpreview内部型をAST lint側へ持ち込むこと。
+- KMM文書モデルやpreview内部型をAST lint側へ持ち込むこと。
 - 最初からすべてのKatanA固有ruleを共通化すること。
 - CLIやユーザー向けコマンドを提供すること。
 
@@ -49,7 +49,7 @@ release workflowはGitHub Releaseと任意のcrates.io publishを扱う。`CARGO
 
 ### P0 Gate
 
-P1 `katana-markdown-engine` は、実装開始前にこの共通AST lint方針を着手条件へ含める。P2 `katana-ui-widget` とP3の各repositoryも同じ入口を参照する。
+P1 `katana-markdown-model` は、実装開始前にこの共通AST lint方針を着手条件へ含める。P2 `katana-ui-widget` とP3の各repositoryも同じ入口を参照する。
 
 ## Risks
 

@@ -25,11 +25,11 @@ The system MUST NOT provide a CLI for v0.
 
 Shared AST lint MUST keep repository-specific file discovery outside common rules.
 
-#### Scenario: Add a KME fixture rule
+#### Scenario: Add a KMM fixture rule
 
-- **WHEN** KME needs fixture-specific linting
-- **THEN** KME provides file discovery and fixture locations through an adapter
-- **THEN** the common rule does not hard-code KME or KatanA paths
+- **WHEN** KMM needs fixture-specific linting
+- **THEN** KMM provides file discovery and fixture locations through an adapter
+- **THEN** the common rule does not hard-code KMM or KatanA paths
 
 ### Requirement: AST lint follows kml-style quality gates
 

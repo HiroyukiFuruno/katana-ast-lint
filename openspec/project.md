@@ -6,7 +6,7 @@
 
 ## Design Principles
 
-- P0として、KMEやUI widgetより先に分離する。
+- P0として、KMMやUI widgetより先に分離する。
 - 共通rule本体にrepository固有pathを持たせない。
 - repository固有のfile探索、fixture、許可対象はadapterへ閉じる。
 - CLIは提供しない。各repositoryはlibrary APIをtest/CIから呼び出す。
@@ -16,8 +16,9 @@
 ## Consumers
 
 - KatanA
-- katana-markdown-engine
+- katana-markdown-model
 - katana-document-preview
 - katana-language-editor
+- katana-diagram-renderer
 - katana-canvas-forge
 - katana-ui-widget

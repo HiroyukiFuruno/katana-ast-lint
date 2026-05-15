@@ -48,9 +48,9 @@ The system MUST keep the one-line runner inside the Rust library API.
 
 Shared AST lint MUST keep repository-specific file discovery outside common rules while allowing the shared runner to load repository differences from `kal.json`.
 
-#### Scenario: Add a KME fixture rule
+#### Scenario: Add a KMM fixture rule
 
-- **WHEN** KME needs fixture-specific linting
-- **THEN** KME provides file discovery and fixture locations through `kal.json` or a repository adapter
-- **THEN** the common rule does not hard-code KME or KatanA paths
+- **WHEN** KMM needs fixture-specific linting
+- **THEN** KMM provides file discovery and fixture locations through `kal.json` or a repository adapter
+- **THEN** the common rule does not hard-code KMM or KatanA paths
 - **THEN** the consumer runner does not duplicate standard rule wiring

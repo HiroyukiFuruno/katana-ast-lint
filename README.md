@@ -53,7 +53,7 @@ libraries when that makes the shared rules more robust.
   common rules.
 - **KatanA-compatible defaults** for file length, function length, and nesting
   depth.
-- **Repository quality gates** for KME, preview, editor, export, widget, and
+- **Repository quality gates** for KMM, preview, editor, export, widget, and
   KatanA integration work.
 
 ## Installation
@@ -197,7 +197,7 @@ sequence and [`docs/quality-gates.md`](docs/quality-gates.md) for required gates
 
 - Replacing `rustc`, rustfmt, or Clippy.
 - Providing complex CLI options that bypass `kal.json`.
-- Embedding KME, preview, editor, export, widget, or KatanA application types.
+- Embedding KMM, preview, editor, export, widget, or KatanA application types.
 - Using broad exclusions as the default fix for rule failures.
 
 ## License

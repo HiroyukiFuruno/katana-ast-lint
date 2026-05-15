@@ -18,7 +18,7 @@
 ### Definition of Done
 
 - [x] `katana-ast-lint` が単独repositoryとして成立している
-- [x] KMEやkdpへ依存していない
+- [x] KMMやkdpへ依存していない
 - [x] `[[bin]]` targetを持たない
 
 ## 2. Violation Contract
@@ -54,7 +54,7 @@
 
 ### Definition of Done
 
-- [x] KatanA、KME、kdp、kle、kcf、kuwが同じruleをadapter経由で実行できる
+- [x] KatanA、KMM、kdp、kle、kcf、kuwが同じruleをadapter経由で実行できる
 
 ## 4. Downstream Adoption
 
@@ -64,7 +64,7 @@
 
 ### Tasks
 
-- [x] 4.1 `katana-markdown-engine` の品質ゲートへ接続する
+- [x] 4.1 `katana-markdown-model` の品質ゲートへ接続する
 - [x] 4.2 `katana-ui-widget` の品質ゲートへ接続する
 - [x] 4.3 kdp、kle、kcf、KatanA統合の後続計画へ接続する
 
@@ -132,7 +132,7 @@
 - [x] 8.5 `katana-canvas-forge/crates/kcf-linter` で `cargo add katana-ast-lint@0.1.0 --dev --dry-run` が通ることを確認する
 - [x] 8.6 `katana-chat-ui/crates/kcu-linter` で `cargo add katana-ast-lint@0.1.0 --dev --dry-run` が通ることを確認する
 - [x] 8.7 `katana-markdown-linter` で `cargo add katana-ast-lint@0.1.0 --dev --dry-run` が通ることを確認する
-- [x] 8.8 `katana-markdown-engine` は現checkoutがOpenSpec/READMEのみでCargo manifest未作成のため、実runner確認は後続実装時の着手条件として扱う
+- [x] 8.8 `katana-markdown-model` は現checkoutがOpenSpec/READMEのみでCargo manifest未作成のため、実runner確認は後続実装時の着手条件として扱う
 - [x] 8.9 `katana-ui-widget` は現checkoutが存在しないため、実runner確認はrepository作成後の着手条件として扱う
 - [x] 8.10 KatanA本体の `extract-katana-ast-lint` OpenSpecが、workspace dependency取り込みと `crates/katana-linter` のadapter境界を要求していることを確認する
 
