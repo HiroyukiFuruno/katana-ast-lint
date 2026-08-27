@@ -159,3 +159,15 @@ jobs:
           fi
           scripts/release/assert-crate-not-published.sh "${{ steps.version.outputs.version_bare }}"
           cargo publish --locked --token "${CARGO_REGISTRY_TOKEN}"
+
+      - name: Run release cleanup
+        if: >
+          github.event_name != 'workflow_dispatch' ||
+          inputs.publish_crate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          scripts/release/cleanup-after-release.sh \
+            --default-branch master \
+            --version "${{ steps.version.outputs.version }}" \
+            --apply

@@ -22,6 +22,11 @@ test:
 openspec-check:
     scripts/openspec validate --changes --strict
 
+# Validate hook and release cleanup contracts and regression cases
+contract-checks:
+    bash scripts/hooks/test-validate-issue-and-dependency-contract.sh
+    bash scripts/release/test-cleanup-after-release.sh
+
 # Local quality gate
 check: fmt-check lint ast-lint test openspec-check
     @echo "All checks passed"
