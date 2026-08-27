@@ -14,4 +14,6 @@ pre-push:
     check-strict:
       run: just JOBS=2 check
       glob: "*.{rs,toml,lock}"
-
+    dependency-and-issue-contract:
+      run: scripts/hooks/validate-issue-and-dependency-contract.sh
+      glob: "*.{rs,toml,md,lock}"
