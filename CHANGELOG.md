@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.2
+
+- Update direct and transitive Rust dependencies to their latest compatible versions.
+
 ## v0.5.1
 
 - Align the standard structure rule thresholds with the existing KatanA AST lint baseline.
