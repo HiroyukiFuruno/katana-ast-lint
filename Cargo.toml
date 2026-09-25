@@ -1,6 +1,6 @@
 [package]
 name = "katana-ast-lint"
-version = "0.5.1"
+version = "0.5.2"
 edition = "2024"
 rust-version = "1.94.0"
 license = "MIT"
@@ -31,14 +31,14 @@ name = "kal"
 path = "src/bin/kal.rs"
 
 [dependencies]
-chrono = "0.4.44"
-ignore = "0.4.25"
+chrono = "0.4.45"
+ignore = "0.4.33"
 once_cell = "1.21.4"
-proc-macro2 = { version = "1.0.106", features = ["span-locations"] }
-regex = "1.12.3"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
-syn = { version = "2.0.117", features = ["full", "visit"] }
+proc-macro2 = { version = "1.0.107", features = ["span-locations"] }
+regex = "1.13.1"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+syn = { version = "3.0.6", features = ["full", "visit"] }
 
 [dev-dependencies]
 tempfile = "3.27.0"
