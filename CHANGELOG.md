@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.3
+
+- Update GitHub Actions to their latest releases and pin action revisions.
+- Update serde_json to 1.0.154 and refresh compatible transitive Rust dependencies.
+- Retain syn 2.0.119 because syn 3 changes AST types exposed by the public library API; migrating them requires a breaking release.
+
 ## v0.5.2
 
 - Update direct and transitive Rust dependencies to their latest compatible versions.
