@@ -83,6 +83,8 @@ the workspace root, including when `KAL_CONFIG_PATH` selects a different
 configuration file. Rule-specific inputs take precedence over `source_roots`.
 Absolute input paths are used as supplied. Workspace diagnostics report
 absolute paths so their locations are independent of the working directory.
+For files inside the workspace, rules evaluate path-based exemptions and
+relative allowance paths against workspace-relative paths.
 
 ```json
 {

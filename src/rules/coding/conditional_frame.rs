@@ -26,10 +26,18 @@ impl ConditionalFrameOps {
         syntax: &syn::File,
         _config: &crate::config::RuleConfig,
     ) -> Vec<Violation> {
+        Self::lint_scoped(path, path, syntax)
+    }
+
+    pub(crate) fn lint_scoped(
+        path: &Path,
+        scoped_path: &Path,
+        syntax: &syn::File,
+    ) -> Vec<Violation> {
         /* WHY: widgets/menu_button/mod.rs is the canonical wrapper around ui.menu_button().
         All other call-sites must use MenuButtonOps::show() so egui's conditional-frame
         behavior is confined behind a single abstraction boundary. */
-        if path
+        if scoped_path
             .to_string_lossy()
             .replace('\\', "/")
             .contains("widgets/menu_button/mod.rs")

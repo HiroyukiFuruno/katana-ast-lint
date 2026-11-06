@@ -4,6 +4,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+#[path = "workspace_paths/exemptions.rs"]
+mod exemptions;
+
 struct Workspace {
     root: PathBuf,
     member: PathBuf,

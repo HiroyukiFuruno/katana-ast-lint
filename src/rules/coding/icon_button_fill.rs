@@ -31,10 +31,18 @@ impl IconButtonFillOps {
         syntax: &syn::File,
         _config: &crate::config::RuleConfig,
     ) -> Vec<Violation> {
+        Self::lint_scoped(path, path, syntax)
+    }
+
+    pub(crate) fn lint_scoped(
+        path: &Path,
+        scoped_path: &Path,
+        syntax: &syn::File,
+    ) -> Vec<Violation> {
         /* WHY: icon/mod.rs is the canonical factory for Button::image — it is the
         only sanctioned call-site. All other callers must use Icon::button() or
         Icon::selected_button() instead of constructing Button::image directly. */
-        if path
+        if scoped_path
             .to_string_lossy()
             .replace('\\', "/")
             .contains("icon/mod.rs")

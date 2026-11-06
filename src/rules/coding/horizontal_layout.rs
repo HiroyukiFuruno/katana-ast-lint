@@ -15,10 +15,18 @@ impl HorizontalLayoutOps {
         syntax: &syn::File,
         _config: &crate::config::RuleConfig,
     ) -> Vec<Violation> {
+        Self::lint_scoped(path, path, syntax)
+    }
+
+    pub(crate) fn lint_scoped(
+        path: &Path,
+        scoped_path: &Path,
+        syntax: &syn::File,
+    ) -> Vec<Violation> {
         /* WHY: Allow ui.horizontal() inside AlignCenter — that is the canonical seam that
         wraps egui. All other callers must go through AlignCenter, so egui internals
         stay isolated behind one abstraction boundary. */
-        if path
+        if scoped_path
             .to_string_lossy()
             .replace('\\', "/")
             .contains("widgets/align_center/ui.rs")

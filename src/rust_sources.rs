@@ -36,7 +36,8 @@ impl<'scope> RustSources<'scope> {
         let severity = config.severity.unwrap_or(Severity::Error);
 
         for file in files.iter() {
-            if Self::is_allowed(file, &config.allow, today) {
+            let scoped_path = LinterFileOps::path_in_scope(file, self.scope);
+            if Self::is_allowed(file, scoped_path.unwrap_or(file), &config.allow, today) {
                 continue;
             }
 
@@ -46,7 +47,6 @@ impl<'scope> RustSources<'scope> {
                 .or_insert_with(|| LinterParserOps::parse_file(file))
             {
                 Ok(syntax) => {
-                    let scoped_path = LinterFileOps::path_in_scope(file, self.scope);
                     let mut found = lint(file, scoped_path, syntax, config);
                     found
                         .iter_mut()
@@ -58,10 +58,22 @@ impl<'scope> RustSources<'scope> {
         }
     }
 
-    fn is_allowed(file: &Path, entries: &[AllowEntry], today: NaiveDate) -> bool {
+    fn is_allowed(
+        file: &Path,
+        policy_path: &Path,
+        entries: &[AllowEntry],
+        today: NaiveDate,
+    ) -> bool {
         entries
             .iter()
-            .filter(|entry| file.ends_with(&entry.path))
+            .filter(|entry| {
+                let path = if entry.path.is_absolute() {
+                    file
+                } else {
+                    policy_path
+                };
+                path.ends_with(&entry.path)
+            })
             .any(|entry| Self::allowance_is_current(entry, today))
     }
 

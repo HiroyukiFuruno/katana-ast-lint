@@ -22,6 +22,21 @@ impl FrameStrokeOps {
         syntax: &syn::File,
         _config: &crate::config::RuleConfig,
     ) -> Vec<Violation> {
+        Self::lint_scoped(path, path, syntax)
+    }
+
+    pub(crate) fn lint_scoped(
+        path: &Path,
+        scoped_path: &Path,
+        syntax: &syn::File,
+    ) -> Vec<Violation> {
+        /* WHY: theme_bridge は枠線の外側への拡張を一元管理する。 */
+        if scoped_path
+            .to_str()
+            .is_some_and(|p| p.contains("theme_bridge"))
+        {
+            return Vec::new();
+        }
         let mut visitor = FrameStrokeVisitor {
             file_path: path.to_path_buf(),
             violations: Vec::new(),
@@ -36,21 +51,8 @@ struct FrameStrokeVisitor {
     violations: Vec<Violation>,
 }
 
-impl FrameStrokeVisitor {
-    fn is_theme_bridge(&self) -> bool {
-        self.file_path
-            .to_str()
-            .is_some_and(|p| p.contains("theme_bridge"))
-    }
-}
-
 impl<'ast> Visit<'ast> for FrameStrokeVisitor {
     fn visit_expr_method_call(&mut self, node: &'ast syn::ExprMethodCall) {
-        /* WHY: theme_bridge is the centralized expansion config — skip it to avoid false positives. */
-        if self.is_theme_bridge() {
-            return;
-        }
-
         let method_name = node.method.to_string();
 
         /* WHY: painter().rect_stroke() adds pixels outside the rect without expansion */
