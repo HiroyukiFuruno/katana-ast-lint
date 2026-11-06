@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
@@ -90,6 +90,15 @@ pub enum ReporterMode {
 }
 
 impl KalConfig {
+    pub(crate) fn resolve_input_roots(&mut self, base: &Path) {
+        let rule_inputs = self.rules.values_mut().flat_map(|rule| &mut rule.inputs);
+        for root in self.source_roots.iter_mut().chain(rule_inputs) {
+            if root.is_relative() {
+                *root = base.join(&*root);
+            }
+        }
+    }
+
     pub(crate) fn rule_config(&self, rule_name: &str) -> RuleConfig {
         self.rules
             .get(rule_name)

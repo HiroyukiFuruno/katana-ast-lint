@@ -13,10 +13,12 @@ impl KatanaAstLint {
         Self::try_from_workspace().unwrap_or_else(|e| panic!("{}", e))
     }
 
+    /// Loads workspace configuration and resolves relative input paths from the workspace root.
     pub fn try_from_workspace() -> Result<Self, KalRunError> {
         let current_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let root = Self::find_workspace_root(&current_dir).unwrap_or_else(|| current_dir.clone());
-        let config = AstLinterOps::try_load_config(std::slice::from_ref(&root))?;
+        let mut config = AstLinterOps::try_load_config(std::slice::from_ref(&root))?;
+        config.resolve_input_roots(&root);
         Ok(Self {
             config,
             target_dirs: vec![root],
