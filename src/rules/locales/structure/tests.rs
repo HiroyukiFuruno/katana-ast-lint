@@ -60,3 +60,29 @@ fn build_locale_baseline_returns_errors_for_mismatched_bases() {
             .any(|v| v.message.contains("Locale placeholder mismatch"))
     );
 }
+
+#[test]
+fn read_locale_matches_public_json_collectors_for_nested_arrays() {
+    let file = tempfile::NamedTempFile::new().unwrap();
+    let json = serde_json::json!({
+        "menu": [{"label": "Open {name}"}, ["Settings", null]],
+        "count": 3
+    });
+    std::fs::write(file.path(), json.to_string()).unwrap();
+
+    let mut shape = BTreeMap::new();
+    let mut placeholders = BTreeMap::new();
+    let mut values = BTreeMap::new();
+    LinterJsonOps::collect_json_shape(&json, None, &mut shape);
+    LinterJsonOps::collect_json_placeholders(&json, None, &mut placeholders);
+    LinterJsonOps::collect_json_values(&json, None, &mut values);
+
+    assert_eq!(
+        LocaleStructureOps::read_locale(file.path(), true).unwrap(),
+        (shape.clone(), placeholders.clone(), values)
+    );
+    assert_eq!(
+        LocaleStructureOps::read_locale(file.path(), false).unwrap(),
+        (shape, placeholders, BTreeMap::new())
+    );
+}

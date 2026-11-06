@@ -90,6 +90,27 @@ pub enum ReporterMode {
 }
 
 impl KalConfig {
+    pub(crate) fn rule_config(&self, rule_name: &str) -> RuleConfig {
+        self.rules
+            .get(rule_name)
+            .cloned()
+            .unwrap_or_else(|| RuleConfig::default_for_rule(rule_name))
+    }
+
+    pub(crate) fn rule_roots<'a>(
+        &'a self,
+        rule: &'a RuleConfig,
+        fallback: &'a [PathBuf],
+    ) -> &'a [PathBuf] {
+        if !rule.inputs.is_empty() {
+            &rule.inputs
+        } else if !self.source_roots.is_empty() {
+            &self.source_roots
+        } else {
+            fallback
+        }
+    }
+
     pub fn load_from_path(path: &std::path::Path) -> Result<Self, String> {
         let content = std::fs::read_to_string(path)
             .map_err(|e| format!("Failed to read config file {}: {}", path.display(), e))?;

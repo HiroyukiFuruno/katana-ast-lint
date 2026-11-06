@@ -1,3 +1,4 @@
+pub(super) mod catalog;
 pub mod comment_style;
 pub mod conditional_frame;
 pub mod error_first;

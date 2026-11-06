@@ -69,42 +69,36 @@ impl ConditionalFrameVisitor<'_> {
     }
 }
 
+impl ConditionalFrameVisitor<'_> {
+    fn remediation(method: &syn::Ident) -> Option<&'static str> {
+        match method.to_string().as_str() {
+            "selectable_label" => Some(
+                "Use `Button::selectable(selected, text).frame_when_inactive(true)` to prevent hover-jitter.",
+            ),
+            "selectable_value" => Some(
+                "Use `Button::selectable(val == variant, text).frame_when_inactive(true)` to prevent hover-jitter.",
+            ),
+            "menu_button" => Some(
+                "menu_button shows a frame only on hover, causing layout jitter. Wrap in a custom button with stable frame.",
+            ),
+            _ => None,
+        }
+    }
+}
+
 impl<'ast> Visit<'ast> for ConditionalFrameVisitor<'_> {
     fn visit_expr_method_call(&mut self, node: &'ast syn::ExprMethodCall) {
-        let method_name = node.method.to_string();
-
-        match method_name.as_str() {
-            /* WHY: selectable_label/selectable_value/menu_button all conditionally show */
-            /* WHY: the frame based on hover state, causing layout jitter. Match all three. */
-            "selectable_label" | "selectable_value" | "menu_button" => {
-                let (line, column) = LinterParserOps::span_location(node.method.span());
-                if !self.is_suppressed(line) {
-                    let msg = match method_name.as_str() {
-                        "selectable_label" => {
-                            "Use `Button::selectable(selected, text).frame_when_inactive(true)` \
-                             to prevent hover-jitter."
-                        }
-                        "selectable_value" => {
-                            "Use `Button::selectable(val == variant, text).frame_when_inactive(true)` \
-                             to prevent hover-jitter."
-                        }
-                        "menu_button" => {
-                            "menu_button shows a frame only on hover, causing layout jitter. \
-                             Wrap in a custom button with stable frame."
-                        }
-                        _ => unreachable!(),
-                    };
-                    self.violations.push(Violation::err(
-                        self.file_path.clone(),
-                        line,
-                        column,
-                        msg.to_string(),
-                    ));
-                }
+        if let Some(message) = Self::remediation(&node.method) {
+            let (line, column) = LinterParserOps::span_location(node.method.span());
+            if !self.is_suppressed(line) {
+                self.violations.push(Violation::err(
+                    self.file_path.clone(),
+                    line,
+                    column,
+                    message,
+                ));
             }
-            _ => {}
         }
-
         syn::visit::visit_expr_method_call(self, node);
     }
 }

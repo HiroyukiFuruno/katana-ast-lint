@@ -120,46 +120,33 @@ impl LocaleValueOps {
         en_values: &BTreeMap<String, String>,
         actual_values: &BTreeMap<String, String>,
     ) -> Vec<Violation> {
-        let mut violations = Vec::new();
+        en_values
+            .iter()
+            .filter_map(|(path, en_value)| {
+                let actual = actual_values.get(path)?;
+                let message = Self::value_violation(path, en_value, actual)?;
+                Some(ViolationReporterOps::locale_violation(file, message))
+            })
+            .collect()
+    }
 
-        for (path, en_val) in en_values {
-            let Some(actual_val) = actual_values.get(path) else {
-                continue;
-            };
-
-            /* WHY: Anti-Lazy Compliance: Reject pseudo-translations like "[TODO-ko] Settings" */
-            if actual_val.contains("[TODO") || actual_val.contains("[todo") {
-                violations.push(ViolationReporterOps::locale_violation(
-                    file,
-                    format!(
-                        "Locale value at `{path}` contains a pseudo-translation placeholder (\"{actual_val}\"). Lazy cheat detected. Please provide a true native translation."
-                    ),
-                ));
-                continue;
-            }
-
-            /* WHY: Reject embedded emojis/icons to enforce SVG component usage */
-            if EMOJI_REGEX.is_match(actual_val) {
-                violations.push(ViolationReporterOps::locale_violation(
-                    file,
-                    format!(
-                        "Locale value at `{path}` contains an embedded emoji/icon (\"{actual_val}\"). Embedded emojis/icons are not allowed. Please use SVG components instead (e.g., `{{{{os_cmd:save_document}}}}: `)."
-                    ),
-                ));
-                continue;
-            }
-
-            if actual_val == en_val && !Self::is_allowed_duplicate(path, actual_val) {
-                violations.push(ViolationReporterOps::locale_violation(
-                    file,
-                    format!(
-                        "Locale value at `{path}` is identical to English baseline (\"{actual_val}\"). Please translate it."
-                    ),
-                ));
-            }
+    fn value_violation(path: &str, en_value: &str, actual: &str) -> Option<String> {
+        if actual.contains("[TODO") || actual.contains("[todo") {
+            return Some(format!(
+                "Locale value at `{path}` contains a pseudo-translation placeholder (\"{actual}\"). Lazy cheat detected. Please provide a true native translation."
+            ));
         }
-
-        violations
+        if EMOJI_REGEX.is_match(actual) {
+            return Some(format!(
+                "Locale value at `{path}` contains an embedded emoji/icon (\"{actual}\"). Embedded emojis/icons are not allowed. Please use SVG components instead (e.g., `{{{{os_cmd:save_document}}}}`: `)."
+            ));
+        }
+        if actual == en_value && !Self::is_allowed_duplicate(path, actual) {
+            return Some(format!(
+                "Locale value at `{path}` is identical to English baseline (\"{actual}\"). Please translate it."
+            ));
+        }
+        None
     }
 
     pub fn is_allowed_duplicate(path: &str, value: &str) -> bool {

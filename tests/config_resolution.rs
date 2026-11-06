@@ -74,3 +74,22 @@ fn run_reloads_config_after_kal_json_changes() {
 
     assert!(result.is_err());
 }
+
+#[test]
+fn workspace_runner_reparses_edited_sources_on_the_next_run() {
+    let project = TempProject::new();
+    let linter = katana_ast_lint::KatanaAstLint::with_config(katana_ast_lint::config::KalConfig {
+        source_roots: project.source_roots(),
+        ..Default::default()
+    });
+    assert!(
+        linter
+            .violations()
+            .iter()
+            .any(|v| v.message.contains("todo!"))
+    );
+
+    std::fs::write(project.dir.path().join("src/lib.rs"), "fn f() {}\n").unwrap();
+
+    assert!(linter.violations().is_empty());
+}

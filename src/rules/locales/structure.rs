@@ -1,9 +1,10 @@
 use crate::utils::{LinterJsonOps, ViolationReporterOps};
 use crate::{JsonNodeKind, Violation};
+use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-type LocaleBaseline = (
+pub(super) type LocaleBaseline = (
     BTreeMap<String, JsonNodeKind>,
     BTreeMap<String, BTreeSet<String>>,
     BTreeMap<String, String>,
@@ -16,61 +17,48 @@ impl LocaleStructureOps {
         ja_path: &Path,
         en_path: &Path,
     ) -> Result<LocaleBaseline, Vec<Violation>> {
-        match LinterJsonOps::parse_json_file(ja_path)
-            .and_then(|ja| LinterJsonOps::parse_json_file(en_path).map(|en| (ja, en)))
-        {
-            Ok((ja_val, en_val)) => {
-                let mut ja_sh = BTreeMap::new();
-                let mut en_sh = BTreeMap::new();
-                LinterJsonOps::collect_json_shape(&ja_val, None, &mut ja_sh);
-                LinterJsonOps::collect_json_shape(&en_val, None, &mut en_sh);
+        let (ja_shape, ja_placeholders, _) = Self::read_locale(ja_path, false)?;
+        let (en_shape, en_placeholders, en_values) = Self::read_locale(en_path, true)?;
 
-                let mut v = Self::compare_locale_shape(ja_path, &en_sh, &ja_sh);
-                v.extend(Self::compare_locale_shape(en_path, &ja_sh, &en_sh));
-
-                let mut ja_pl = BTreeMap::new();
-                let mut en_pl = BTreeMap::new();
-                LinterJsonOps::collect_json_placeholders(&ja_val, None, &mut ja_pl);
-                LinterJsonOps::collect_json_placeholders(&en_val, None, &mut en_pl);
-
-                let mut en_values = BTreeMap::new();
-                LinterJsonOps::collect_json_values(&en_val, None, &mut en_values);
-
-                Self::validate_baseline_placeholders(
-                    ja_path, en_path, &mut v, &ja_sh, &en_sh, &ja_pl, &en_pl,
-                );
-
-                if v.is_empty() {
-                    Ok((ja_sh, ja_pl, en_values))
-                } else {
-                    Err(v)
-                }
-            }
-            Err(e) => Err(e),
-        }
-    }
-
-    fn validate_baseline_placeholders(
-        ja_path: &Path,
-        en_path: &Path,
-        violations: &mut Vec<Violation>,
-        ja_shape: &BTreeMap<String, JsonNodeKind>,
-        en_shape: &BTreeMap<String, JsonNodeKind>,
-        ja_placeholders: &BTreeMap<String, BTreeSet<String>>,
-        en_placeholders: &BTreeMap<String, BTreeSet<String>>,
-    ) {
+        let mut violations = Self::compare_locale_shape(ja_path, &en_shape, &ja_shape);
+        violations.extend(Self::compare_locale_shape(en_path, &ja_shape, &en_shape));
         violations.extend(Self::compare_locale_placeholders(
             ja_path,
-            en_shape,
-            en_placeholders,
-            ja_placeholders,
+            &en_shape,
+            &en_placeholders,
+            &ja_placeholders,
         ));
         violations.extend(Self::compare_locale_placeholders(
             en_path,
-            ja_shape,
-            ja_placeholders,
-            en_placeholders,
+            &ja_shape,
+            &ja_placeholders,
+            &en_placeholders,
         ));
+        if violations.is_empty() {
+            Ok((ja_shape, ja_placeholders, en_values))
+        } else {
+            Err(violations)
+        }
+    }
+
+    pub(super) fn read_locale(
+        path: &Path,
+        collect_values: bool,
+    ) -> Result<LocaleBaseline, Vec<Violation>> {
+        let document = LinterJsonOps::parse_json_file(path)?;
+        let mut shape = BTreeMap::new();
+        let mut placeholders = BTreeMap::new();
+        let mut values = BTreeMap::new();
+        LinterJsonOps::visit_paths(&document, None, &mut |path, node| {
+            shape.insert(path.to_owned(), JsonNodeKind::from_value(node));
+            if let Value::String(text) = node {
+                placeholders.insert(path.to_owned(), LinterJsonOps::extract_placeholders(text));
+                if collect_values {
+                    values.insert(path.to_owned(), text.clone());
+                }
+            }
+        });
+        Ok((shape, placeholders, values))
     }
 
     pub fn compare_locale_shape(

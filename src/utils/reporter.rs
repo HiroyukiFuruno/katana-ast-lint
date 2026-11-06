@@ -49,32 +49,34 @@ impl ViolationReporterOps {
             return Ok(());
         }
 
+        let has_error = violations.iter().any(|v| v.severity == Severity::Error);
         match reporter_config.mode.unwrap_or_default() {
             ReporterMode::Text => {
                 let mut msg = Self::format_violations(rule_name, violations);
                 msg.push('\n');
                 msg.push_str(&format!("Fix: {}\n", hint));
                 msg.push_str("Details: See docs/quality-gates.md\n");
-
                 println!("{}", msg);
-
-                if violations.iter().any(|v| v.severity == Severity::Error) {
+                if has_error {
                     return Err(crate::KalRunError::Violations(msg));
                 }
             }
-            ReporterMode::Json => {
-                let json = serde_json::to_string_pretty(violations).map_err(|e| {
-                    crate::KalRunError::System(format!(
-                        "Failed to serialize AST lint violations as JSON: {e}"
-                    ))
-                })?;
-                println!("{json}");
-                if violations.iter().any(|v| v.severity == Severity::Error) {
-                    return Err(crate::KalRunError::Violations(
-                        "AST Lint failed with errors (JSON output above)".to_string(),
-                    ));
-                }
-            }
+            ReporterMode::Json => Self::report_json(violations, has_error)?,
+        }
+        Ok(())
+    }
+
+    fn report_json(violations: &[Violation], has_error: bool) -> Result<(), crate::KalRunError> {
+        let json = serde_json::to_string_pretty(violations).map_err(|e| {
+            crate::KalRunError::System(format!(
+                "Failed to serialize AST lint violations as JSON: {e}"
+            ))
+        })?;
+        println!("{json}");
+        if has_error {
+            return Err(crate::KalRunError::Violations(
+                "AST Lint failed with errors (JSON output above)".to_string(),
+            ));
         }
         Ok(())
     }

@@ -5,37 +5,35 @@ pub struct LinterFileOps;
 
 impl LinterFileOps {
     pub fn collect_rs_files(root: &Path) -> Vec<PathBuf> {
-        let mut files = Vec::new();
-        let walker = WalkBuilder::new(root)
-            .standard_filters(true)
-            .require_git(false)
-            .build();
-
-        for entry in walker.flatten() {
-            let path = entry.path();
-            if path.is_file()
-                && path.extension().is_some_and(|ext| ext == "rs")
-                && !path.components().any(|c| c.as_os_str() == "tests")
-            {
-                files.push(path.to_path_buf());
-            }
-        }
-
-        files.sort();
-        files
+        Self::collect_files(root, "rs", |path| {
+            !path
+                .components()
+                .any(|component| component.as_os_str() == "tests")
+        })
     }
 
     pub fn collect_files_by_extension(root: &Path, extension: &str) -> Vec<PathBuf> {
-        let mut files = Vec::new();
+        Self::collect_files(root, extension, |_| true)
+    }
+
+    fn collect_files(
+        root: &Path,
+        extension: &str,
+        include: impl Fn(&Path) -> bool,
+    ) -> Vec<PathBuf> {
         let walker = WalkBuilder::new(root)
             .standard_filters(true)
             .require_git(false)
             .build();
 
+        let mut files = Vec::new();
         for entry in walker.flatten() {
             let path = entry.path();
-            if path.is_file() && path.extension().is_some_and(|ext| ext == extension) {
-                files.push(path.to_path_buf());
+            if path.extension().is_some_and(|ext| ext == extension)
+                && path.is_file()
+                && include(path)
+            {
+                files.push(entry.into_path());
             }
         }
         files.sort();
