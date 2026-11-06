@@ -57,14 +57,18 @@ impl RuleDefinition {
         &self,
         lint: LintFn,
         path: &Path,
-        scoped_path: &Path,
+        scoped_path: Option<&Path>,
         syntax: &syn::File,
         config: &RuleConfig,
     ) -> Vec<Violation> {
         match self.id {
-            "file-length" => FileLengthOps::lint_scoped(path, scoped_path, syntax, config),
+            "file-length" => {
+                FileLengthOps::lint_scoped(path, scoped_path.unwrap_or(path), syntax, config)
+            }
             "type-separation" => TypeSeparationOps::lint_scoped(path, scoped_path, syntax),
-            "min-rect-sizing" => MinRectSizingOps::lint_scoped(path, scoped_path, syntax),
+            "min-rect-sizing" => {
+                MinRectSizingOps::lint_scoped(path, scoped_path.unwrap_or(path), syntax)
+            }
             _ => lint(path, syntax, config),
         }
     }

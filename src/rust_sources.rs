@@ -25,7 +25,7 @@ impl<'scope> RustSources<'scope> {
         &mut self,
         root: &Path,
         config: &RuleConfig,
-        lint: impl Fn(&Path, &Path, &syn::File, &RuleConfig) -> Vec<Violation>,
+        lint: impl Fn(&Path, Option<&Path>, &syn::File, &RuleConfig) -> Vec<Violation>,
         violations: &mut Vec<Violation>,
     ) {
         let files = self

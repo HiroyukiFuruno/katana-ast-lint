@@ -162,3 +162,29 @@ fn workspace_parent_named_tests_does_not_hide_production_violations() {
         assert_eq!(violation.file.canonicalize().unwrap(), production);
     }
 }
+
+#[test]
+fn workspace_type_separation_preserves_exemptions_and_reports_the_same_path() {
+    let temp = tempfile::tempdir().unwrap();
+    let workspace = Workspace::new(temp.path());
+    let source = format!(
+        "pub struct Record;\n{}impl Record {{ fn run(&self) {{}} }}\n",
+        "\n".repeat(250)
+    );
+    for name in ["types", "models", "state", "migration"] {
+        let dir = workspace.root.join(name);
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("record.rs"), &source).unwrap();
+    }
+    let production = workspace.member.join("src/record.rs");
+    fs::write(&production, source).unwrap();
+    workspace.write_config(
+        "kal.json",
+        json!({"rules": {"file-length": {"enabled": false}}}),
+    );
+
+    let violations = workspace.diagnostics(None);
+    assert_eq!(violations.len(), 1);
+    assert_eq!(violations[0].file.canonicalize().unwrap(), production);
+    assert!(violations[0].message.starts_with("Mixed logic and data."));
+}

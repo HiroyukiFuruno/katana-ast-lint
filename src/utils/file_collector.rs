@@ -11,15 +11,14 @@ impl LinterFileOps {
     pub(crate) fn collect_rs_files_in_scope(root: &Path, scope: Option<&Path>) -> Vec<PathBuf> {
         Self::collect_files(root, "rs", |path| {
             !Self::path_in_scope(path, scope)
+                .unwrap_or(path)
                 .components()
                 .any(|component| component.as_os_str() == "tests")
         })
     }
 
-    pub(crate) fn path_in_scope<'a>(path: &'a Path, scope: Option<&Path>) -> &'a Path {
-        scope
-            .and_then(|root| path.strip_prefix(root).ok())
-            .unwrap_or(path)
+    pub(crate) fn path_in_scope<'a>(path: &'a Path, scope: Option<&Path>) -> Option<&'a Path> {
+        scope.map(|root| path.strip_prefix(root).unwrap_or(path))
     }
 
     pub fn collect_files_by_extension(root: &Path, extension: &str) -> Vec<PathBuf> {

@@ -16,16 +16,20 @@ impl TypeSeparationOps {
         syntax: &syn::File,
         _config: &crate::config::RuleConfig,
     ) -> Vec<Violation> {
-        Self::lint_scoped(path, path, syntax)
+        Self::lint_scoped(path, None, syntax)
     }
 
     pub(crate) fn lint_scoped(
         path: &Path,
-        scoped_path: &Path,
+        scoped_path: Option<&Path>,
         syntax: &syn::File,
     ) -> Vec<Violation> {
         let mut violations = Vec::new();
-        let path_str = scoped_path.to_string_lossy().replace('\\', "/");
+        let path_str = scoped_path
+            .unwrap_or(path)
+            .to_string_lossy()
+            .replace('\\', "/");
+        let workspace = scoped_path.is_some();
         if path_str.contains("/tests/") || path_str.ends_with("tests.rs") {
             return violations;
         }
@@ -33,14 +37,16 @@ impl TypeSeparationOps {
             return violations;
         };
         let num_lines = source.lines().count();
-        if Self::is_whitelisted_type_file(&path_str) || num_lines <= MAX_LENGTH_FOR_MIXED_FILE {
+        if Self::is_whitelisted_type_file(&path_str, workspace)
+            || num_lines <= MAX_LENGTH_FOR_MIXED_FILE
+        {
             return violations;
         }
 
         let (has_pub_type, has_logic, line) = Self::check_syntax_for_types_and_logic(syntax);
 
         if has_pub_type && has_logic {
-            violations.push(Self::create_violation(path, line, num_lines));
+            violations.push(Self::create_violation(path, workspace, line, num_lines));
         }
 
         violations
@@ -86,13 +92,15 @@ impl TypeSeparationOps {
         (has_pub_type, has_logic_impl, first_pub_type_line)
     }
 
-    fn create_violation(path: &Path, line: usize, num_lines: usize) -> Violation {
-        let rel_path = path
-            .strip_prefix(std::env::current_dir().unwrap_or_default())
-            .unwrap_or(path)
-            .to_path_buf();
+    fn create_violation(path: &Path, workspace: bool, line: usize, num_lines: usize) -> Violation {
+        let report_path = if workspace {
+            path
+        } else {
+            path.strip_prefix(std::env::current_dir().unwrap_or_default())
+                .unwrap_or(path)
+        };
         Violation::err(
-            rel_path,
+            report_path.to_path_buf(),
             line,
             1,
             format!(
@@ -101,32 +109,29 @@ impl TypeSeparationOps {
         )
     }
 
-    fn is_whitelisted_type_file(path_str: &str) -> bool {
-        if path_str.ends_with("types.rs")
-            || path_str.ends_with("type.rs")
-            || path_str.ends_with("models.rs")
-            || path_str.ends_with("model.rs")
-            || path_str.ends_with("state.rs")
-        {
-            return true;
-        }
-        if path_str.contains("/types/")
-            || path_str.contains("/models/")
-            || path_str.contains("/state/")
-        {
-            return true;
-        }
-        if path_str.ends_with("lib.rs") || path_str.ends_with("main.rs") {
-            return true;
-        }
-        if path_str.ends_with("defaults.rs")
-            || path_str.ends_with("service.rs")
-            || path_str.ends_with("repository.rs")
-            || path_str.ends_with("loader.rs")
-            || path_str.contains("/migration/")
-        {
-            return true;
-        }
-        false
+    fn is_whitelisted_type_file(path_str: &str, workspace: bool) -> bool {
+        let exempt_suffixes = [
+            "types.rs",
+            "type.rs",
+            "models.rs",
+            "model.rs",
+            "state.rs",
+            "lib.rs",
+            "main.rs",
+            "defaults.rs",
+            "service.rs",
+            "repository.rs",
+            "loader.rs",
+        ];
+        let dirs = path_str.rsplit_once('/').map_or("", |(dirs, _)| dirs);
+        /* WHY: 従来の直接呼び出しでは先頭に区切りがあるディレクトリだけが除外対象。 */
+        let exempt_dir = dirs
+            .split('/')
+            .skip(usize::from(!workspace))
+            .any(|part| matches!(part, "types" | "models" | "state" | "migration"));
+        exempt_dir
+            || exempt_suffixes
+                .iter()
+                .any(|suffix| path_str.ends_with(suffix))
     }
 }

@@ -81,7 +81,8 @@ Customized behavior belongs in `kal.json` in the workspace root. See `src/config
 The workspace runner resolves relative `source_roots` and rule `inputs` from
 the workspace root, including when `KAL_CONFIG_PATH` selects a different
 configuration file. Rule-specific inputs take precedence over `source_roots`.
-Absolute input paths are used as supplied.
+Absolute input paths are used as supplied. Workspace diagnostics report
+absolute paths so their locations are independent of the working directory.
 
 ```json
 {
