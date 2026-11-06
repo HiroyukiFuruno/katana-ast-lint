@@ -15,7 +15,15 @@ impl MinRectSizingOps {
         syntax: &syn::File,
         _config: &crate::config::RuleConfig,
     ) -> Vec<Violation> {
-        if path
+        Self::lint_scoped(path, path, syntax)
+    }
+
+    pub(crate) fn lint_scoped(
+        path: &Path,
+        scoped_path: &Path,
+        syntax: &syn::File,
+    ) -> Vec<Violation> {
+        if scoped_path
             .to_string_lossy()
             .replace('\\', "/")
             .contains("/tests/")

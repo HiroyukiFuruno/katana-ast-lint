@@ -109,7 +109,12 @@ impl AstLinterOps {
         let mut sources = RustSources::default();
         let mut all_violations = Vec::new();
         for root in config.rule_roots(&rule_config, target_dirs) {
-            sources.lint_directory(root, &rule_config, lint_fn, &mut all_violations);
+            sources.lint_directory(
+                root,
+                &rule_config,
+                |path, _, syntax, config| lint_fn(path, syntax, config),
+                &mut all_violations,
+            );
         }
 
         utils::ViolationReporterOps::report(rule_name, hint, &all_violations, &config.reporter);

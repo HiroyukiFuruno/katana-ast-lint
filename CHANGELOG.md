@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.5
+
+- Resolve workspace lint inputs from the workspace root so running from a member package reports the same violations, including file-length and function-length.
+
 ## v0.5.4
 
 - Fix function-length checks to use the opening and closing brace lines, and file-length checks to count production code after test modules.

@@ -52,6 +52,30 @@ pub struct RuleDefinition {
     pub default_threshold: Option<usize>,
 }
 
+impl RuleDefinition {
+    pub(crate) fn lint_rust_file(
+        &self,
+        lint: LintFn,
+        path: &Path,
+        scoped_path: Option<&Path>,
+        syntax: &syn::File,
+        config: &RuleConfig,
+    ) -> Vec<Violation> {
+        let policy_path = scoped_path.unwrap_or(path);
+        match self.id {
+            "file-length" => FileLengthOps::lint_scoped(path, policy_path, syntax, config),
+            "type-separation" => TypeSeparationOps::lint_scoped(path, scoped_path, syntax),
+            "min-rect-sizing" => MinRectSizingOps::lint_scoped(path, policy_path, syntax),
+            "frame-stroke" => FrameStrokeOps::lint_scoped(path, policy_path, syntax),
+            "horizontal-layout" => HorizontalLayoutOps::lint_scoped(path, policy_path, syntax),
+            "conditional-frame" => ConditionalFrameOps::lint_scoped(path, policy_path, syntax),
+            "icon-button-fill" => IconButtonFillOps::lint_scoped(path, policy_path, syntax),
+            "process-command" => ProcessCommandOps::lint_scoped(path, policy_path, syntax),
+            _ => lint(path, syntax, config),
+        }
+    }
+}
+
 pub static RULE_CATALOG: Lazy<Vec<RuleDefinition>> =
     Lazy::new(|| {
         coding::catalog::RULES.into_iter().chain([

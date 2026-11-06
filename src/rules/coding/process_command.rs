@@ -16,6 +16,22 @@ impl ProcessCommandOps {
         syntax: &syn::File,
         _config: &crate::config::RuleConfig,
     ) -> Vec<Violation> {
+        Self::lint_scoped(path, path, syntax)
+    }
+
+    pub(crate) fn lint_scoped(
+        path: &Path,
+        scoped_path: &Path,
+        syntax: &syn::File,
+    ) -> Vec<Violation> {
+        /* WHY: Command::new は ProcessService に集約する。 */
+        if scoped_path
+            .to_string_lossy()
+            .replace('\\', "/")
+            .contains("system/process.rs")
+        {
+            return Vec::new();
+        }
         let mut visitor = ProcessCommandVisitor::new(path.to_path_buf());
         visitor.visit_file(syntax);
         visitor.violations
@@ -35,13 +51,7 @@ impl ProcessCommandVisitor {
         }
     }
 
-    fn report_violation_if_needed(&mut self, node: &syn::ExprCall) {
-        /* WHY: Normalize to forward slashes for cross-platform path comparison */
-        let file_str = self.file.to_string_lossy().replace('\\', "/");
-        /* WHY: Allow the central ProcessService facade to use Command::new */
-        if file_str.contains("system/process.rs") {
-            return;
-        }
+    fn report_violation(&mut self, node: &syn::ExprCall) {
         let (line, column) = LinterParserOps::span_location(node.span());
         self.violations.push(Violation::err(
             self.file.clone(),
@@ -64,7 +74,7 @@ impl<'ast> Visit<'ast> for ProcessCommandVisitor {
                 let last = segments[segments.len() - 1];
                 let prev = segments[segments.len() - 2];
                 if last.ident == "new" && prev.ident == "Command" {
-                    self.report_violation_if_needed(node);
+                    self.report_violation(node);
                 }
             }
         }
