@@ -12,7 +12,7 @@
 | `just check` | Run all local gates above | Yes |
 | `just release-check` | Run local release preflight without requiring crates.io token | Yes |
 
-OpenSpec validation via npm requires Node.js 22.12 or later. CI runs it on Node.js 24.
+OpenSpec validation via npm requires Node.js 22.12 or later. CI runs it on Node.js 26.
 
 ## AST Lint Invariants
 
