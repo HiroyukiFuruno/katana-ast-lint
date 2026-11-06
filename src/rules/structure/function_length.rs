@@ -40,9 +40,8 @@ impl FunctionLengthVisitor {
     }
 
     fn check_length(&mut self, name: &syn::Ident, block: &syn::Block) {
-        let (start, _) = LinterParserOps::span_location(block.brace_token.span.join());
-        let (end, _) = LinterParserOps::span_location(block.brace_token.span.join());
-        /* WHY: Both span calls return the same token's location; end is approximated from brace span. */
+        let start = block.brace_token.span.open().start().line;
+        let end = block.brace_token.span.close().end().line;
         let lines = end.saturating_sub(start);
         if lines > self.max_lines {
             let (name_line, name_column) = LinterParserOps::span_location(name.span());
@@ -68,9 +67,5 @@ impl<'ast> Visit<'ast> for FunctionLengthVisitor {
     fn visit_impl_item_fn(&mut self, node: &'ast syn::ImplItemFn) {
         self.check_length(&node.sig.ident, &node.block);
         syn::visit::visit_impl_item_fn(self, node);
-    }
-
-    fn visit_item_mod(&mut self, node: &'ast syn::ItemMod) {
-        syn::visit::visit_item_mod(self, node);
     }
 }

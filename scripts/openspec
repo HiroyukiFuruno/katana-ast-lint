@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly OPENSPEC_NPX_PACKAGE="${KAL_OPENSPEC_NPX_PACKAGE:-@fission-ai/openspec@1.3.1}"
+readonly OPENSPEC_NPX_PACKAGE="${KAL_OPENSPEC_NPX_PACKAGE:-@fission-ai/openspec@1.16.0}"
 
 main() {
   if [[ -n "${KAL_OPENSPEC_BIN:-}" ]]; then
@@ -12,7 +12,7 @@ main() {
   if ! npx_bin="$(resolve_npx)"; then
     printf '%s\n' \
       "OpenSpec launcher could not find npx or nvm-managed Node.js." \
-      "Install Node.js, set KAL_OPENSPEC_BIN, or install nvm at \${HOME}/.nvm." >&2
+      "Install Node.js 22.12 or later, set KAL_OPENSPEC_BIN, or install nvm at \${HOME}/.nvm." >&2
     exit 127
   fi
 

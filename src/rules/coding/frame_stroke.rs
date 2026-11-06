@@ -81,61 +81,39 @@ impl FrameStrokeVisitor {
     /// Heuristic: walk the receiver chain to see if this `.stroke()` is called
     /// on a `Frame` builder (e.g., `Frame::NONE.fill(...).stroke(...)`).
     fn is_frame_context(node: &syn::ExprMethodCall) -> bool {
-        let mut expr = &*node.receiver;
+        let mut expr = node.receiver.as_ref();
         loop {
-            match expr {
-                syn::Expr::MethodCall(inner) => {
-                    let name = inner.method.to_string();
-                    /* WHY: These are the chainable Frame builder methods — keep walking up. */
-                    if matches!(
-                        name.as_str(),
-                        "fill"
-                            | "inner_margin"
-                            | "outer_margin"
-                            | "corner_radius"
-                            | "rounding"
-                            | "shadow"
-                    ) {
-                        expr = &inner.receiver;
-                        continue;
-                    }
-                    return false;
+            expr = match expr {
+                syn::Expr::MethodCall(inner) if Self::is_frame_builder_method(&inner.method) => {
+                    &inner.receiver
                 }
-                syn::Expr::Path(path) => {
-                    let path_str = path
-                        .path
-                        .segments
-                        .iter()
-                        .map(|s| s.ident.to_string())
-                        .collect::<Vec<_>>()
-                        .join("::");
-                    return path_str.contains("Frame");
-                }
+                syn::Expr::Path(path) => return Self::is_frame_path(&path.path),
                 syn::Expr::Field(field) => {
-                    /* WHY: Frame::NONE and .frame are sentinel field accesses indicating a Frame builder start. */
                     if let syn::Member::Named(ident) = &field.member
                         && (ident == "NONE" || ident == "frame")
                     {
                         return true;
                     }
-                    expr = &field.base;
-                    continue;
+                    &field.base
                 }
                 syn::Expr::Call(call) => {
-                    if let syn::Expr::Path(path) = &*call.func {
-                        let path_str = path
-                            .path
-                            .segments
-                            .iter()
-                            .map(|s| s.ident.to_string())
-                            .collect::<Vec<_>>()
-                            .join("::");
-                        return path_str.contains("Frame");
-                    }
-                    return false;
+                    return matches!(&*call.func, syn::Expr::Path(path) if Self::is_frame_path(&path.path));
                 }
                 _ => return false,
-            }
+            };
         }
+    }
+
+    fn is_frame_builder_method(method: &syn::Ident) -> bool {
+        matches!(
+            method.to_string().as_str(),
+            "fill" | "inner_margin" | "outer_margin" | "corner_radius" | "rounding" | "shadow"
+        )
+    }
+
+    fn is_frame_path(path: &syn::Path) -> bool {
+        path.segments
+            .iter()
+            .any(|segment| segment.ident.to_string().contains("Frame"))
     }
 }

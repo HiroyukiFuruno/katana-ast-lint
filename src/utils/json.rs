@@ -33,30 +33,9 @@ impl LinterJsonOps {
         path: Option<&str>,
         out: &mut BTreeMap<String, JsonNodeKind>,
     ) {
-        let kind = JsonNodeKind::from_value(value);
-        if let Some(path) = path {
-            out.insert(path.to_string(), kind);
-        }
-
-        match value {
-            Value::Object(map) => {
-                for (key, child) in map {
-                    let child_path = path
-                        .map(|prefix| format!("{prefix}.{key}"))
-                        .unwrap_or_else(|| key.to_string());
-                    Self::collect_json_shape(child, Some(&child_path), out);
-                }
-            }
-            Value::Array(items) => {
-                for (index, child) in items.iter().enumerate() {
-                    let child_path = path
-                        .map(|prefix| format!("{prefix}[{index}]"))
-                        .unwrap_or_else(|| format!("[{index}]"));
-                    Self::collect_json_shape(child, Some(&child_path), out);
-                }
-            }
-            Value::String(_) | Value::Number(_) | Value::Bool(_) | Value::Null => {}
-        }
+        Self::visit_paths(value, path, &mut |path, node| {
+            out.insert(path.to_owned(), JsonNodeKind::from_value(node));
+        });
     }
 
     pub fn collect_json_values(
@@ -64,30 +43,11 @@ impl LinterJsonOps {
         path: Option<&str>,
         out: &mut BTreeMap<String, String>,
     ) {
-        match value {
-            Value::Object(map) => {
-                for (key, child) in map {
-                    let child_path = path
-                        .map(|prefix| format!("{prefix}.{key}"))
-                        .unwrap_or_else(|| key.to_string());
-                    Self::collect_json_values(child, Some(&child_path), out);
-                }
+        Self::visit_paths(value, path, &mut |path, node| {
+            if let Value::String(text) = node {
+                out.insert(path.to_owned(), text.clone());
             }
-            Value::Array(items) => {
-                for (index, child) in items.iter().enumerate() {
-                    let child_path = path
-                        .map(|prefix| format!("{prefix}[{index}]"))
-                        .unwrap_or_else(|| format!("[{index}]"));
-                    Self::collect_json_values(child, Some(&child_path), out);
-                }
-            }
-            Value::String(text) => {
-                if let Some(path) = path {
-                    out.insert(path.to_string(), text.clone());
-                }
-            }
-            _ => {}
-        }
+        });
     }
 
     pub fn collect_json_placeholders(
@@ -95,13 +55,28 @@ impl LinterJsonOps {
         path: Option<&str>,
         out: &mut BTreeMap<String, BTreeSet<String>>,
     ) {
+        Self::visit_paths(value, path, &mut |path, node| {
+            if let Value::String(text) = node {
+                out.insert(path.to_owned(), Self::extract_placeholders(text));
+            }
+        });
+    }
+
+    pub(crate) fn visit_paths(
+        value: &Value,
+        path: Option<&str>,
+        visit: &mut impl FnMut(&str, &Value),
+    ) {
+        if let Some(path) = path {
+            visit(path, value);
+        }
         match value {
             Value::Object(map) => {
                 for (key, child) in map {
                     let child_path = path
                         .map(|prefix| format!("{prefix}.{key}"))
                         .unwrap_or_else(|| key.to_string());
-                    Self::collect_json_placeholders(child, Some(&child_path), out);
+                    Self::visit_paths(child, Some(&child_path), visit);
                 }
             }
             Value::Array(items) => {
@@ -109,15 +84,10 @@ impl LinterJsonOps {
                     let child_path = path
                         .map(|prefix| format!("{prefix}[{index}]"))
                         .unwrap_or_else(|| format!("[{index}]"));
-                    Self::collect_json_placeholders(child, Some(&child_path), out);
+                    Self::visit_paths(child, Some(&child_path), visit);
                 }
             }
-            Value::String(text) => {
-                if let Some(path) = path {
-                    out.insert(path.to_string(), Self::extract_placeholders(text));
-                }
-            }
-            Value::Number(_) | Value::Bool(_) | Value::Null => {}
+            Value::String(_) | Value::Number(_) | Value::Bool(_) | Value::Null => {}
         }
     }
 

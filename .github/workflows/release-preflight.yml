@@ -20,6 +20,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Install Node.js for OpenSpec
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
         with:
@@ -32,7 +38,7 @@ jobs:
           shared-key: release-preflight-ubuntu-stable
 
       - name: Install just
-        uses: taiki-e/install-action@5488ac5a951645ce95062214902ac4b6bc1a1037 # v2.87.32
+        uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
         with:
           tool: just
 
@@ -40,7 +46,9 @@ jobs:
         id: version
         if: startsWith(github.head_ref, 'release/v')
         shell: bash
-        run: scripts/release/resolve-release-version.sh "pull_request" "" "${{ github.head_ref }}"
+        env:
+          RELEASE_HEAD_REF: ${{ github.head_ref }}
+        run: scripts/release/resolve-release-version.sh "pull_request" "" "$RELEASE_HEAD_REF"
 
       - name: Release check
         if: startsWith(github.head_ref, 'release/v')

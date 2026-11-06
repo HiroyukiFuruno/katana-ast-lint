@@ -13,50 +13,40 @@ impl CommentStyleOps {
         _syntax: &syn::File,
         _config: &crate::config::RuleConfig,
     ) -> Vec<Violation> {
-        let mut violations = Vec::new();
         let Ok(content) = std::fs::read_to_string(path) else {
-            return violations;
+            return Vec::new();
         };
 
-        for (line_idx, line) in content.lines().enumerate() {
-            let trimmed = line.trim();
+        content
+            .lines()
+            .enumerate()
+            .filter_map(|(index, line)| {
+                let message = Self::line_violation(line.trim())?;
+                Some(Violation::err(path.to_path_buf(), index + 1, 1, message))
+            })
+            .collect()
+    }
 
-            /* WHY: Standard inline comments (//) are completely prohibited
-            to save context window and enforce formal annotations. */
-            if trimmed.starts_with("//")
-                && !trimmed.starts_with("///")
-                && !trimmed.starts_with("//!")
-            {
-                violations.push(Violation::err(path.to_path_buf(),
-                    line_idx + 1,
-                    1,
-                    "Standard `//` comments are prohibited to save AI context. Use `/* WHY:`, `/// SAFETY:`, or `/// TODO:` for logic annotations.".to_string()));
-            }
-
-            /* WHY: If an annotation contains a justification keyword,
-            it MUST strictly start with it to prevent cheating. */
-            if trimmed.starts_with("///") || trimmed.starts_with("/*") {
-                let text = if trimmed.starts_with("///") {
-                    trimmed.trim_start_matches('/').trim()
-                } else {
-                    trimmed.trim_start_matches("/*").trim()
-                };
-
-                let contains_keyword =
-                    text.contains("WHY:") || text.contains("SAFETY:") || text.contains("TODO:");
-                let invalid_start = !text.starts_with("WHY:")
-                    && !text.starts_with("SAFETY:")
-                    && !text.starts_with("TODO:");
-
-                if contains_keyword && invalid_start {
-                    violations.push(Violation::err(path.to_path_buf(),
-                        line_idx + 1,
-                        1,
-                        "Annotations containing WHY/SAFETY/TODO must strictly start with the keyword.".to_string()));
-                }
-            }
+    fn line_violation(line: &str) -> Option<&'static str> {
+        if line.starts_with("//") && !line.starts_with("///") && !line.starts_with("//!") {
+            return Some(
+                "Standard `//` comments are prohibited to save AI context. Use `/* WHY:`, `/// SAFETY:`, or `/// TODO:` for logic annotations.",
+            );
         }
+        let text = if line.starts_with("///") {
+            line.trim_start_matches('/').trim()
+        } else if line.starts_with("/*") {
+            line.trim_start_matches("/*").trim()
+        } else {
+            return None;
+        };
 
-        violations
+        /* WHY: 注釈の途中にキーワードを書いて規約を回避することを防ぐ。 */
+        let keywords = ["WHY:", "SAFETY:", "TODO:"];
+        let contains_keyword = keywords.iter().any(|keyword| text.contains(keyword));
+        let starts_with_keyword = keywords.iter().any(|keyword| text.starts_with(keyword));
+        (contains_keyword && !starts_with_keyword).then_some(
+            "Annotations containing WHY/SAFETY/TODO must strictly start with the keyword.",
+        )
     }
 }

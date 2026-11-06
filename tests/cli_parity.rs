@@ -220,3 +220,18 @@ fn cli_check_json_override_parity() {
 
     assert_eq!(cli_stdout, expected);
 }
+
+#[test]
+fn cli_check_reports_configured_function_length() {
+    let dir = tempdir().unwrap();
+    write_minimal_workspace(dir.path(), "long-function", "fn main() {\n\n}\n");
+    fs::write(
+        dir.path().join("kal.json"),
+        r#"{"rules":{"function-length":{"threshold":1}}}"#,
+    )
+    .unwrap();
+
+    let output = run_cli(dir.path(), &["check"]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&output.stdout).contains("Rule: function-length"));
+}

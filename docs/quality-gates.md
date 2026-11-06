@@ -12,9 +12,18 @@
 | `just check` | Run all local gates above | Yes |
 | `just release-check` | Run local release preflight without requiring crates.io token | Yes |
 
+OpenSpec validation via npm requires Node.js 22.12 or later. CI runs it on Node.js 24.
+
 ## AST Lint Invariants
 
 `just ast-lint` protects invariants that normal compiler checks do not cover. Consumer repositories can choose between the one-line runner API or the `kal` CLI.
+
+- `file-length` counts physical lines and excludes the lines occupied solely by
+  `#[cfg(test)]` modules. Production lines before and after test modules count
+  toward the limit.
+- `function-length` measures the line difference between the opening and closing
+  braces of free functions and impl methods. It reports the function name when
+  the difference exceeds the configured limit.
 
 ### Option A: Library API (Recommended for Rust-heavy projects)
 

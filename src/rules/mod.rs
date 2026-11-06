@@ -52,131 +52,9 @@ pub struct RuleDefinition {
     pub default_threshold: Option<usize>,
 }
 
-pub static RULE_CATALOG: Lazy<Vec<RuleDefinition>> = Lazy::new(|| {
-    vec![
-        /* WHY: Coding rules category. */
-        RuleDefinition {
-            id: "comment-style",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Use `//` for internal comments and `///` for documentation.",
-            implementation: RuleImplementation::RustFile(CommentStyleOps::lint_with_config),
-            default_threshold: None,
-        },
-        RuleDefinition {
-            id: "conditional-frame",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Prefer `ui.add_visible_ui` or `ui.set_visible` over conditional `ui.frame` calls.",
-            implementation: RuleImplementation::RustFile(ConditionalFrameOps::lint_with_config),
-            default_threshold: None,
-        },
-        RuleDefinition {
-            id: "error-first",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Use early returns for error handling to reduce nesting.",
-            implementation: RuleImplementation::RustFile(ErrorFirstOps::lint_with_config),
-            default_threshold: None,
-        },
-        RuleDefinition {
-            id: "frame-stroke",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Use `Frame::stroke` for borders instead of manual `Rect` drawing.",
-            implementation: RuleImplementation::RustFile(FrameStrokeOps::lint_with_config),
-            default_threshold: None,
-        },
-        RuleDefinition {
-            id: "horizontal-layout",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Use `ui.horizontal` for horizontal item placement.",
-            implementation: RuleImplementation::RustFile(HorizontalLayoutOps::lint_with_config),
-            default_threshold: None,
-        },
-        RuleDefinition {
-            id: "icon-button-fill",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Ensure `IconButton` has consistent fill behavior.",
-            implementation: RuleImplementation::RustFile(IconButtonFillOps::lint_with_config),
-            default_threshold: None,
-        },
-        RuleDefinition {
-            id: "lazy-code",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Remove `todo!()`, `unimplemented!()`, and `dbg!()` macros.",
-            implementation: RuleImplementation::RustFile(LazyCodeOps::lint_with_config),
-            default_threshold: None,
-        },
-        RuleDefinition {
-            id: "magic-numbers",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Extract numeric literals to named constants.",
-            implementation: RuleImplementation::RustFile(MagicNumberOps::lint_with_config),
-            default_threshold: None,
-        },
-        RuleDefinition {
-            id: "markdown-sandbox",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Ensure markdown snippets are properly sandboxed.",
-            implementation: RuleImplementation::RustFile(MarkdownSandboxOps::lint_with_config),
-            default_threshold: None,
-        },
-        RuleDefinition {
-            id: "min-rect-sizing",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Use `ui.allocate_at_least` for minimum size constraints.",
-            implementation: RuleImplementation::RustFile(MinRectSizingOps::lint_with_config),
-            default_threshold: None,
-        },
-        RuleDefinition {
-            id: "performance",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Avoid expensive operations in UI update loops.",
-            implementation: RuleImplementation::RustFile(PerformanceOps::lint_with_config),
-            default_threshold: None,
-        },
-        RuleDefinition {
-            id: "process-command",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Use shared process utilities instead of raw `std::process::Command`.",
-            implementation: RuleImplementation::RustFile(ProcessCommandOps::lint_with_config),
-            default_threshold: None,
-        },
-        RuleDefinition {
-            id: "prohibited-attributes",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Remove `#[allow(dead_code)]`; delete unused code instead.",
-            implementation: RuleImplementation::RustFile(ProhibitedAttributesOps::lint_with_config),
-            default_threshold: None,
-        },
-        RuleDefinition {
-            id: "prohibited-types",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Use ecosystem-preferred types for common data structures.",
-            implementation: RuleImplementation::RustFile(ProhibitedTypesOps::lint_with_config),
-            default_threshold: None,
-        },
-        RuleDefinition {
-            id: "scrollarea-inner-rect-leak",
-            category: RuleCategory::Coding,
-            default_severity: Severity::Error,
-            hint: "Prevent inner rect information from leaking outside `ScrollArea`.",
-            implementation: RuleImplementation::RustFile(
-                ScrollAreaInnerRectLeakOps::lint_with_config,
-            ),
-            default_threshold: None,
-        },
+pub static RULE_CATALOG: Lazy<Vec<RuleDefinition>> =
+    Lazy::new(|| {
+        coding::catalog::RULES.into_iter().chain([
         /* WHY: Structure rules category. */
         RuleDefinition {
             id: "file-length",
@@ -244,5 +122,5 @@ pub static RULE_CATALOG: Lazy<Vec<RuleDefinition>> = Lazy::new(|| {
             implementation: RuleImplementation::Directory(LocaleOps::lint),
             default_threshold: None,
         },
-    ]
-});
+    ]).collect()
+    });

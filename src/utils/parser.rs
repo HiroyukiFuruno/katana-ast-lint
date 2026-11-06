@@ -5,15 +5,14 @@ pub struct LinterParserOps;
 
 impl LinterParserOps {
     pub fn has_cfg_test_attr(attrs: &[syn::Attribute]) -> bool {
-        attrs.iter().any(|attr| {
-            if attr.path().is_ident("cfg") {
-                let Ok(syn::Meta::Path(path)) = attr.parse_args::<syn::Meta>() else {
-                    return false;
-                };
-                return path.is_ident("test");
-            }
-            attr.path().is_ident("test")
-        })
+        attrs
+            .iter()
+            .any(|attr| attr.path().is_ident("test") || Self::is_cfg_test_attr(attr))
+    }
+
+    pub(crate) fn is_cfg_test_attr(attr: &syn::Attribute) -> bool {
+        attr.path().is_ident("cfg")
+            && matches!(attr.parse_args::<syn::Meta>(), Ok(syn::Meta::Path(path)) if path.is_ident("test"))
     }
 
     pub fn is_allowed_number(value: f64) -> bool {

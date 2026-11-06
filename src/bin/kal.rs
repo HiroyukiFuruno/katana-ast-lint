@@ -1,27 +1,26 @@
-use katana_ast_lint::KatanaAstLint;
+use katana_ast_lint::config::ReporterMode;
+use katana_ast_lint::{KalRunError, KatanaAstLint};
 use std::env;
 use std::process;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() < 2 {
-        print_usage();
-        process::exit(2);
-    }
-
-    match args[1].as_str() {
-        "check" => run_check(),
-        "--help" | "-h" | "help" => {
+    let mut args = env::args().skip(1);
+    match args.next().as_deref() {
+        Some("check") => run_check(args),
+        Some("--help" | "-h" | "help") => {
             print_usage();
             process::exit(0);
         }
-        "--version" | "-v" | "version" => {
+        Some("--version" | "-v" | "version") => {
             println!("kal {}", env!("CARGO_PKG_VERSION"));
             process::exit(0);
         }
-        _ => {
-            eprintln!("Error: Unknown command '{}'", args[1]);
+        Some(command) => {
+            eprintln!("Error: Unknown command '{command}'");
+            print_usage();
+            process::exit(2);
+        }
+        None => {
             print_usage();
             process::exit(2);
         }
@@ -41,53 +40,37 @@ fn print_usage() {
     println!("  --text   Force text output");
 }
 
-fn run_check() {
-    let args: Vec<String> = env::args().collect();
+fn run_check(args: impl Iterator<Item = String>) {
+    let mode_override = parse_reporter_mode(args).unwrap_or_else(|e| exit_with_error(&e));
+    let mut linter = KatanaAstLint::try_from_workspace().unwrap_or_else(|e| exit_with_error(&e));
+
+    if let Some(mode) = mode_override {
+        linter = linter.with_reporter_mode(mode);
+    }
+    match linter.try_assert_clean() {
+        Ok(()) => {}
+        Err(KalRunError::Violations(_)) => process::exit(1),
+        Err(error) => exit_with_error(&error),
+    }
+}
+
+fn parse_reporter_mode(args: impl Iterator<Item = String>) -> Result<Option<ReporterMode>, String> {
     let mut mode_override = None;
-
-    for arg in args.iter().skip(2) {
-        match arg.as_str() {
-            "--json" => {
-                if mode_override == Some(katana_ast_lint::config::ReporterMode::Text) {
-                    eprintln!("Error: Cannot specify both --json and --text");
-                    process::exit(2);
-                }
-                mode_override = Some(katana_ast_lint::config::ReporterMode::Json);
-            }
-            "--text" => {
-                if mode_override == Some(katana_ast_lint::config::ReporterMode::Json) {
-                    eprintln!("Error: Cannot specify both --json and --text");
-                    process::exit(2);
-                }
-                mode_override = Some(katana_ast_lint::config::ReporterMode::Text);
-            }
-            _ => {
-                eprintln!("Error: Unknown option '{}'", arg);
-                process::exit(2);
-            }
+    for arg in args {
+        let mode = match arg.as_str() {
+            "--json" => ReporterMode::Json,
+            "--text" => ReporterMode::Text,
+            _ => return Err(format!("Unknown option '{arg}'")),
+        };
+        if mode_override.is_some_and(|previous| previous != mode) {
+            return Err("Cannot specify both --json and --text".to_string());
         }
+        mode_override = Some(mode);
     }
+    Ok(mode_override)
+}
 
-    match KatanaAstLint::try_from_workspace() {
-        Ok(mut linter) => {
-            if let Some(mode) = mode_override {
-                linter = linter.with_reporter_mode(mode);
-            }
-            if let Err(e) = linter.try_assert_clean() {
-                match e {
-                    katana_ast_lint::KalRunError::Violations(_) => {
-                        process::exit(1);
-                    }
-                    _ => {
-                        eprintln!("Error: {e}");
-                        process::exit(2);
-                    }
-                }
-            }
-        }
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            process::exit(2);
-        }
-    }
+fn exit_with_error(error: &impl std::fmt::Display) -> ! {
+    eprintln!("Error: {error}");
+    process::exit(2);
 }
