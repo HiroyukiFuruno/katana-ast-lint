@@ -16,8 +16,16 @@ impl TypeSeparationOps {
         syntax: &syn::File,
         _config: &crate::config::RuleConfig,
     ) -> Vec<Violation> {
+        Self::lint_scoped(path, path, syntax)
+    }
+
+    pub(crate) fn lint_scoped(
+        path: &Path,
+        scoped_path: &Path,
+        syntax: &syn::File,
+    ) -> Vec<Violation> {
         let mut violations = Vec::new();
-        let path_str = path.to_string_lossy().replace('\\', "/");
+        let path_str = scoped_path.to_string_lossy().replace('\\', "/");
         if path_str.contains("/tests/") || path_str.ends_with("tests.rs") {
             return violations;
         }

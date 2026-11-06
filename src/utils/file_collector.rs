@@ -5,11 +5,21 @@ pub struct LinterFileOps;
 
 impl LinterFileOps {
     pub fn collect_rs_files(root: &Path) -> Vec<PathBuf> {
+        Self::collect_rs_files_in_scope(root, None)
+    }
+
+    pub(crate) fn collect_rs_files_in_scope(root: &Path, scope: Option<&Path>) -> Vec<PathBuf> {
         Self::collect_files(root, "rs", |path| {
-            !path
+            !Self::path_in_scope(path, scope)
                 .components()
                 .any(|component| component.as_os_str() == "tests")
         })
+    }
+
+    pub(crate) fn path_in_scope<'a>(path: &'a Path, scope: Option<&Path>) -> &'a Path {
+        scope
+            .and_then(|root| path.strip_prefix(root).ok())
+            .unwrap_or(path)
     }
 
     pub fn collect_files_by_extension(root: &Path, extension: &str) -> Vec<PathBuf> {

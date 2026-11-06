@@ -21,10 +21,19 @@ impl FileLengthOps {
         syntax: &syn::File,
         config: &RuleConfig,
     ) -> Vec<Violation> {
+        Self::lint_scoped(path, path, syntax, config)
+    }
+
+    pub(crate) fn lint_scoped(
+        path: &Path,
+        scoped_path: &Path,
+        syntax: &syn::File,
+        config: &RuleConfig,
+    ) -> Vec<Violation> {
         let Ok(source) = std::fs::read_to_string(path) else {
             return Vec::new();
         };
-        let path_str = path.to_string_lossy().replace('\\', "/");
+        let path_str = scoped_path.to_string_lossy().replace('\\', "/");
         let is_test = path_str.contains("/tests/") || path_str.ends_with("tests.rs");
         let max_allowed = config.threshold.unwrap_or(if is_test {
             MAX_TEST_LINES

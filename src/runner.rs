@@ -5,7 +5,8 @@ use std::path::{Path, PathBuf};
 
 pub struct KatanaAstLint {
     config: config::KalConfig,
-    target_dirs: Vec<PathBuf>,
+    root: PathBuf,
+    workspace_inputs: bool,
 }
 
 impl KatanaAstLint {
@@ -21,7 +22,8 @@ impl KatanaAstLint {
         config.resolve_input_roots(&root);
         Ok(Self {
             config,
-            target_dirs: vec![root],
+            root,
+            workspace_inputs: true,
         })
     }
 
@@ -47,7 +49,8 @@ impl KatanaAstLint {
         let current_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         Self {
             config,
-            target_dirs: vec![current_dir],
+            root: current_dir,
+            workspace_inputs: false,
         }
     }
 
@@ -117,7 +120,8 @@ impl KatanaAstLint {
     }
 
     fn lint_all(&self) -> BTreeMap<&'static str, Vec<Violation>> {
-        let mut sources = RustSources::default();
+        let scope = self.workspace_inputs.then_some(self.root.as_path());
+        let mut sources = RustSources::new(scope);
         let mut results = BTreeMap::new();
 
         for rule in RULE_CATALOG.iter() {
@@ -127,7 +131,9 @@ impl KatanaAstLint {
             }
             config.threshold = config.threshold.or(rule.default_threshold);
 
-            let roots = self.config.rule_roots(&config, &self.target_dirs);
+            let roots = self
+                .config
+                .rule_roots(&config, std::slice::from_ref(&self.root));
             let violations = Self::lint_rule(rule, &config, roots, &mut sources);
             if !violations.is_empty() {
                 results.insert(rule.id, violations);
@@ -140,13 +146,20 @@ impl KatanaAstLint {
         rule: &RuleDefinition,
         config: &config::RuleConfig,
         roots: &[PathBuf],
-        sources: &mut RustSources,
+        sources: &mut RustSources<'_>,
     ) -> Vec<Violation> {
         let mut violations = Vec::new();
         for root in roots {
             match rule.implementation {
                 RuleImplementation::RustFile(lint) => {
-                    sources.lint_directory(root, config, lint, &mut violations);
+                    sources.lint_directory(
+                        root,
+                        config,
+                        |path, scoped_path, syntax, config| {
+                            rule.lint_rust_file(lint, path, scoped_path, syntax, config)
+                        },
+                        &mut violations,
+                    );
                 }
                 RuleImplementation::Directory(lint) => {
                     let severity = config.severity.unwrap_or(rule.default_severity);

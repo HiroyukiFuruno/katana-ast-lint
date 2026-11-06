@@ -135,3 +135,30 @@ fn explicit_config_takes_precedence_and_preserves_absolute_inputs() {
         .collect();
     assert_eq!(files, [file, absolute, relative]);
 }
+
+#[test]
+fn workspace_parent_named_tests_does_not_hide_production_violations() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("tests/project");
+    fs::create_dir_all(&root).unwrap();
+    let workspace = Workspace::new(&root);
+    let production = workspace.write_probe("crates/member/src");
+    workspace.write_probe("crates/member/src/tests");
+    workspace.write_config("kal.json", json!({"source_roots": ["crates/member/src"]}));
+
+    let violations = workspace.diagnostics(None);
+    assert_eq!(violations.len(), 2);
+    assert!(
+        violations[0]
+            .message
+            .starts_with("File exceeds 200-line limit")
+    );
+    assert!(
+        violations[1]
+            .message
+            .starts_with("Function `production` exceeds 30-line limit")
+    );
+    for violation in violations {
+        assert_eq!(violation.file.canonicalize().unwrap(), production);
+    }
+}

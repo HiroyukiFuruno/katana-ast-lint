@@ -7,23 +7,31 @@ use std::path::{Path, PathBuf};
 
 /* WHY: 同じ実行内のルールでだけ入力を共有し、次回は編集後のファイルを読み直す。 */
 #[derive(Default)]
-pub(crate) struct RustSources {
+pub(crate) struct RustSources<'scope> {
+    scope: Option<&'scope Path>,
     files_by_root: HashMap<PathBuf, Vec<PathBuf>>,
     parsed_files: HashMap<PathBuf, Result<syn::File, Vec<Violation>>>,
 }
 
-impl RustSources {
+impl<'scope> RustSources<'scope> {
+    pub(crate) fn new(scope: Option<&'scope Path>) -> Self {
+        Self {
+            scope,
+            ..Self::default()
+        }
+    }
+
     pub(crate) fn lint_directory(
         &mut self,
         root: &Path,
         config: &RuleConfig,
-        lint: impl Fn(&Path, &syn::File, &RuleConfig) -> Vec<Violation>,
+        lint: impl Fn(&Path, &Path, &syn::File, &RuleConfig) -> Vec<Violation>,
         violations: &mut Vec<Violation>,
     ) {
         let files = self
             .files_by_root
             .entry(root.to_path_buf())
-            .or_insert_with(|| LinterFileOps::collect_rs_files(root));
+            .or_insert_with(|| LinterFileOps::collect_rs_files_in_scope(root, self.scope));
         let today = chrono::Utc::now().naive_utc().date();
         let severity = config.severity.unwrap_or(Severity::Error);
 
@@ -38,7 +46,8 @@ impl RustSources {
                 .or_insert_with(|| LinterParserOps::parse_file(file))
             {
                 Ok(syntax) => {
-                    let mut found = lint(file, syntax, config);
+                    let scoped_path = LinterFileOps::path_in_scope(file, self.scope);
+                    let mut found = lint(file, scoped_path, syntax, config);
                     found
                         .iter_mut()
                         .for_each(|violation| violation.severity = severity);
