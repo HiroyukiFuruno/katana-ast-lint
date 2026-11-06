@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.5.4
+
+- Fix function-length checks to use the opening and closing brace lines, and file-length checks to count production code after test modules.
+- Share configuration resolution, file discovery, and Rust ASTs within each lint run. Subsequent runs read the latest source files.
+- Share JSON path traversal across locale checks and separate CLI argument handling from library rule execution.
+- Update compatible Rust dependencies, OpenSpec to 1.16.0, and install-action to v2.90.1. Install Node.js 24 in CI for OpenSpec.
+
 ## v0.5.3
 
 - Update GitHub Actions to their latest releases and pin action revisions.
